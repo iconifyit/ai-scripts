@@ -194,7 +194,7 @@ function filesToArtboards() {
     /**
      * Gets only the SVG files…
      */
-    fileList = srcFolder.getFiles(/\.svg$/i);
+    fileList = getFilesInSubfolders(srcFolder); // srcFolder.getFiles(/\.svg$/i);
 
     /**
      * Make sure it has AI files in it…
@@ -274,6 +274,38 @@ function filesToArtboards() {
     };
 
 };
+
+function getFilesInSubfolders( srcFolder ) {
+
+    var allFiles    = [];
+    var theFolders  = [];
+    var svgFileList = [];
+
+    if ( ! srcFolder instanceof Folder) return;
+
+    allFiles = srcFolder.getFiles();
+    theFolders = [];
+
+    for (var x=0; x < allFiles.length; x++) {
+        if (allFiles[x] instanceof Folder) {
+            theFolders.push(allFiles[x]);
+        }
+    }
+
+    if (theFolders.length == 0) {
+        svgFileList = srcFolder.getFiles(/\.svg$/i);
+    }
+    else {
+        for (var x=0; x < theFolders.length; x++) {
+            fileList = theFolders[x].getFiles(/\.svg$/i);
+            for (var n = 0; n<fileList.length; n++) {
+                svgFileList.push(fileList[n]);
+            }
+        }
+    }
+
+    return svgFileList;
+}
 
 /**
  * Saves a file in Ai format.
