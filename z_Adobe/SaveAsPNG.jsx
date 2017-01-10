@@ -55,21 +55,21 @@ if (sourceFolder != null && sourceFolder.exists) {
         destFolder = new Folder("~/Desktop/pngs");
         
         if (destFolder != null && destFolder.exists) {
-			for (i = 0; i < files.length; i++) {
-				sourceDoc = app.open(files[i]); // returns the document object
-								   
-				// Call function getNewName to get the name and file to save the pdf
-				targetFile = getNewName();
-		   
-				// Call function getPNGOptions get the PNGExportOptions for the files
-				pngExportOpts = getPNGOptions();
-		   
-				// Export as PNG
-				sourceDoc.exportFile(targetFile, ExportType.PNG24, pngExportOpts);
-		   
-				sourceDoc.close(SaveOptions.DONOTSAVECHANGES);
-			}
-			alert('Files are saved as PNG in ' + destFolder);
+            for (i = 0; i < files.length; i++) {
+                sourceDoc = app.open(files[i]); // returns the document object
+                                   
+                // Call function getNewName to get the name and file to save the pdf
+                targetFile = getNewName();
+           
+                // Call function getPNGOptions get the PNGExportOptions for the files
+                pngExportOpts = getPNGOptions();
+           
+                // Export as PNG
+                sourceDoc.exportFile(targetFile, ExportType.PNG24, pngExportOpts);
+           
+                sourceDoc.close(SaveOptions.DONOTSAVECHANGES);
+            }
+            alert('Files are saved as PNG in ' + destFolder);
         }
         else {
             alert("Error: Folder [" + destFolder + "] does not exist");

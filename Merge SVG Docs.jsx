@@ -36,7 +36,7 @@ function filesToArtboards() {
     // Check they ain't cancelled  
     if (srcFolder != null) {  
     
-    	CONST.COMPOSITE_FILE_NAME = srcFolder.name + ".ai";
+        CONST.COMPOSITE_FILE_NAME = srcFolder.name + ".ai";
 
         // Gets just the SVG files…  
         fileList = srcFolder.getFiles(/\.svg$/i);  
@@ -78,19 +78,19 @@ function filesToArtboards() {
                 // Top Left
                 
                 try {
-					svgFile.position = [
-						Math.floor((CONST.ARTBOARD_WIDTH - svgFile.width) / 2),
-						Math.floor((CONST.ARTBOARD_HEIGHT - svgFile.height) / 2) * -1
-					];
-					if (typeof(svgFile.resize) == "function") {
-					    svgFile.resize(CONST.SCALE, CONST.SCALE, true, true, true, true, CONST.SCALE);
-					}
+                    svgFile.position = [
+                        Math.floor((CONST.ARTBOARD_WIDTH - svgFile.width) / 2),
+                        Math.floor((CONST.ARTBOARD_HEIGHT - svgFile.height) / 2) * -1
+                    ];
+                    if (typeof(svgFile.resize) == "function") {
+                        svgFile.resize(CONST.SCALE, CONST.SCALE, true, true, true, true, CONST.SCALE);
+                    }
                 }
                 catch(ex) {
-					try {
-					    svgFile.position = [0, 0];
-					}
-					catch(ex) {/*Exit Gracefully*/}
+                    try {
+                        svgFile.position = [0, 0];
+                    }
+                    catch(ex) {/*Exit Gracefully*/}
                 }
                 
                 alignToNearestPixel(doc.selection);
