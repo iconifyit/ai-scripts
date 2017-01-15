@@ -14,46 +14,85 @@ var logging = true;
  *     COMPOSITE_FILE_NAME: string,
  *     SCALE: number,
  *     ROOT: string,
- *     SRC_FOLDER: string, P
+ *     SRC_FOLDER: string,
  *     ATH_SEPATATOR: string
  * }}
  */
 var CONFIG = {
-    ARTBOARD_COUNT:      1,
-    ARTBOARD_WIDTH:      64,
-    ARTBOARD_HEIGHT:     64,
-    ARTBOARD_SPACING:    64,
-    ARTBOARD_ROWSxCOLS:  10,
-    LOG_FILE_PATH:       "~/Downloads/ai-script-log.txt",
-    COMPOSITE_FILE_NAME: "merged-files.ai",
-    SCALE:               100,
-    ROOT:                "~/Documents",
-    SRC_FOLDER:          "",
-    PATH_SEPATATOR:      "/"
+    ARTBOARD_COUNT      : 1,
+    ARTBOARD_WIDTH      : 64,
+    ARTBOARD_HEIGHT     : 64,
+    ARTBOARD_SPACING    : 64,
+    ARTBOARD_ROWSxCOLS  : 10,
+    LOG_FILE_PATH       : "~/Downloads/ai-script-log.txt",
+    COMPOSITE_FILE_NAME : "merged-files.ai",
+    SCALE               : 100,
+    ROOT                : "~/Documents",
+    SRC_FOLDER          : "",
+    PATH_SEPATATOR      : "/"
 }
 
 /**
  * Use this object to translate the buttons and dialog labels to the language of your choice.
  */
 var LANG = {
-    CHOOSE_FOLDER:          "Please choose your Folder of files to merge",
-    NO_SELECTION:           "No selection",
-    LABEL_DIALOG_WINDOW:    "Settings",
-    LABEL_ARTBOARD_WIDTH:   "Artboard Width:",
-    LABEL_ARTBOARD_HEIGHT:  "Artboard Height:",
-    LABEL_COL_COUNT:        "Column Count:",
-    LABEL_ROW_COUNT:        "Row Count:",
-    LABEL_ARTBOARD_SPACING: "Artboard Spacing",
-    LABEL_SCALE:            "Scale:",
-    LABEL_FILE_NAME:        "File Name:",
-    LABEL_LOGGING:          "Logging?",
-    BUTTON_CANCEL:          "Cancel",
-    BUTTON_OK:              "Ok",
-    DOES_NOT_EXIST:         " does not exist",
-    LAYER_NOT_CREATED:      "Could not create layer. ",
-    LABEL_SRC_FOLDER:       "Source Folder"
+    CHOOSE_FOLDER          : 'Please choose your Folder of files to merge',
+    NO_SELECTION           : 'No selection',
+    LABEL_DIALOG_WINDOW    : 'SVG Files to Artboards',
+    LABEL_ARTBOARD_WIDTH   : 'Artboard Width:',
+    LABEL_ARTBOARD_HEIGHT  : 'Artboard Height:',
+    LABEL_COL_COUNT        : 'Column Count:',
+    LABEL_ROW_COUNT        : 'Row Count:',
+    LABEL_ARTBOARD_SPACING : 'Artboard Spacing:',
+    LABEL_SCALE            : 'Scale:',
+    LABEL_FILE_NAME        : 'File Name:',
+    LABEL_LOGGING          : 'Logging?',
+    BUTTON_CANCEL          : 'Cancel',
+    BUTTON_OK              : 'Ok',
+    DOES_NOT_EXIST         : ' does not exist',
+    LAYER_NOT_CREATED      : 'Could not create layer. ',
+    LABEL_SRC_FOLDER       : 'Source Folder',
+    LABEL_CHOOSE_FOLDER    : 'Choose Folder',
+    LABEL_INPUT            : 'Input',
+    LABEL_SIZE             : 'Size',
+    LABEL_OUTPUT           : 'Output'
 }
 
+/**
+ * Get a value from an object or array.
+ * @param subject
+ * @param key
+ * @param _default
+ * @returns {*}
+ */
+function get( subject, key, _default ) {
+    var value = _default;
+    if (typeof(subject[key]) != 'undefined') {
+        value = subject[key];
+    }
+    return value;
+}
+
+/**
+ * Gets the screen dimensions and bounds.
+ * @returns {{left: *, top: *, right: *, bottom: *}}
+ * ,,-605,263,1893,-1048
+ */
+function getScreenSize() {
+
+    if ( view = app.activeDocument.views[0] ) {
+        view.zoom = 1;
+        return {
+            left   : parseInt(view.bounds[0]),
+            top    : parseInt(view.bounds[1]),
+            right  : parseInt(view.bounds[2]),
+            bottom : parseInt(view.bounds[3]),
+            width  : parseInt(view.bounds[2]) - parseInt(view.bounds[0]),
+            height : parseInt(view.bounds[1]) - parseInt(view.bounds[3])
+        };
+    }
+    return null;
+}
 
 /**
  * Displays the settings dialog
@@ -76,48 +115,77 @@ var LANG = {
  */
 function doDisplayDialog() {
 
+    var dialogWidth  = 450;
+    var dialogHeight = 410;
+
+    var dialogLeft = 550;
+    var dialogTop  = 300;
+
+    if ( bounds = getScreenSize() ) {
+
+        dialogLeft = Math.abs(Math.ceil((bounds.width/2) - (dialogWidth/2)));
+        // dialogTop  = Math.abs(Math.ceil((bounds.height) - (dialogHeight/2)));
+    }
+
     /**
      * Dialog bounds: [ Left, TOP, RIGHT, BOTTOM ]
+     * default: //550, 350, 1000, 800
      */
 
-    var dialog   = new Window("dialog", CONFIG.LABEL_DIALOG_WINDOW, [550, 350, 1200, 800]);
+    var dialog   = new Window(
+        "dialog", LANG.LABEL_DIALOG_WINDOW, [
+            dialogLeft,
+            dialogTop,
+            dialogLeft + dialogWidth,
+            dialogTop + dialogHeight
+        ]
+    );
     var response = false;
 
     try {
-        dialog.artboardWidthLabel     = dialog.add("statictext", [32,  30, 132, 60],   LANG.LABEL_ARTBOARD_WIDTH);
-        dialog.artboardWidth          = dialog.add("edittext",   [150, 30, 200, 60],   CONFIG.ARTBOARD_WIDTH);
+
+        var c1 = 28;
+        var c2 = 164;
+        var p1 = 16;
+
+        dialog.sizePanel              = dialog.add('panel',      [p1, 16, 434, 200], LANG.LABEL_SIZE);
+        dialog.outputPanel            = dialog.add('panel',      [p1, 200, 434, 290], LANG.LABEL_OUTPUT);
+        dialog.sourcePanel            = dialog.add('panel',      [p1, 290, 434, 350], LANG.LABEL_INPUT);
+
+        dialog.artboardWidthLabel     = dialog.add('statictext', [c1, 40, 140, 70],   LANG.LABEL_ARTBOARD_WIDTH);
+        dialog.artboardWidth          = dialog.add('edittext',   [c2, 40, 214, 70],   CONFIG.ARTBOARD_WIDTH);
         dialog.artboardWidth.active   = true;
 
-        dialog.artboardHeightLabel    = dialog.add("statictext", [32,  70, 132, 100],  LANG.LABEL_ARTBOARD_HEIGHT);
-        dialog.artboardHeight         = dialog.add("edittext",   [150, 70, 200, 100],  CONFIG.ARTBOARD_HEIGHT);
+        dialog.artboardHeightLabel    = dialog.add('statictext', [c1, 70, 140, 100],  LANG.LABEL_ARTBOARD_HEIGHT);
+        dialog.artboardHeight         = dialog.add('edittext',   [c2, 70, 214, 100],  CONFIG.ARTBOARD_HEIGHT);
         dialog.artboardHeight.active  = true;
 
-        dialog.artboardSpacingLabel   = dialog.add("statictext", [32, 110, 132, 140],  LANG.LABEL_ARTBOARD_SPACING);
-        dialog.artboardSpacing        = dialog.add("edittext",   [150, 110, 200, 140], CONFIG.ARTBOARD_SPACING);
+        dialog.artboardSpacingLabel   = dialog.add('statictext', [c1, 100, 140, 130], LANG.LABEL_ARTBOARD_SPACING);
+        dialog.artboardSpacing        = dialog.add('edittext',   [c2, 100, 214, 130], CONFIG.ARTBOARD_SPACING);
         dialog.artboardSpacing.active = true;
 
-        dialog.rowsLabel              = dialog.add("statictext", [32, 150, 132, 180],  LANG.LABEL_ROW_COUNT);
-        dialog.rows                   = dialog.add("edittext",   [150, 150, 200, 180], CONFIG.ARTBOARD_ROWSxCOLS);
+        dialog.rowsLabel              = dialog.add('statictext', [c1, 130, 140, 160], LANG.LABEL_ROW_COUNT);
+        dialog.rows                   = dialog.add('edittext',   [c2, 130, 214, 160], CONFIG.ARTBOARD_ROWSxCOLS);
         dialog.rows.active            = true;
 
-        dialog.scaleLabel             = dialog.add("statictext", [32, 190, 132, 220],  LANG.LABEL_SCALE);
-        dialog.scale                  = dialog.add("edittext",   [150, 190, 200, 220], CONFIG.SCALE);
+        dialog.scaleLabel             = dialog.add('statictext', [c1, 160, 140, 190], LANG.LABEL_SCALE);
+        dialog.scale                  = dialog.add('edittext',   [c2, 160, 214, 190], CONFIG.SCALE);
         dialog.scale.active           = true;
 
-        dialog.filenameLabel          = dialog.add("statictext", [32, 230, 132, 260],  LANG.LABEL_FILE_NAME);
-        dialog.filename               = dialog.add("edittext",   [150, 230, 320, 260], "");
+        dialog.filenameLabel          = dialog.add('statictext', [c1, 220, 140, 250], LANG.LABEL_FILE_NAME);
+        dialog.filename               = dialog.add('edittext',   [c2, 220, 334, 250], '');
         dialog.filename.active        = true;
 
-        dialog.logging                = dialog.add('checkbox',   [32, 270, 132, 340],  LANG.LABEL_LOGGING);
+        dialog.logging                = dialog.add('checkbox',   [c1, 260, 140, 330], LANG.LABEL_LOGGING);
         dialog.logging.value          = CONFIG.LOGGING;
 
-        dialog.folderBtn              = dialog.add("button",     [32, 300, 132, 330],  LANG.LABEL_SRC_FOLDER, {name: "folder"})
+        dialog.folderBtn              = dialog.add('button',     [c1, 310, 140, 340],  LANG.LABEL_CHOOSE_FOLDER, {name: 'folder'})
 
-        dialog.cancelBtn              = dialog.add("button",     [164, 300, 264, 330], LANG.BUTTON_CANCEL, {name:"cancel"});
-        dialog.openBtn                = dialog.add("button",     [296, 300, 396, 330], LANG.BUTTON_OK, {name:"ok"});
+        dialog.srcFolder              = dialog.add('edittext',   [140, 310, 424, 340], "");
+        dialog.srcFolder.active       = false;
 
-        dialog.srcFolderLabel         = dialog.add("edittext", [32,  340, 616, 370], "");
-        dialog.srcFolderLabel.active  = false;
+        dialog.cancelBtn              = dialog.add('button',     [232, 360, 332, 390], LANG.BUTTON_CANCEL, {name: 'cancel'});
+        dialog.openBtn                = dialog.add('button',     [334, 360, 434, 390], LANG.BUTTON_OK, {name: 'ok'});
 
         dialog.cancelBtn.onClick = function() {
             dialog.close();
@@ -128,14 +196,14 @@ function doDisplayDialog() {
         dialog.folderBtn.onClick = function() {
             if ( srcFolder = Folder.selectDialog( CONFIG.CHOOSE_FOLDER ) ) {
 
-                if ( srcFolder.fs == "Windows" ) {
+                if ( srcFolder.fs == 'Windows' ) {
                     CONFIG.PATH_SEPATATOR = "\\"
                 }
 
-                dialog.srcFolderLabel.text = srcFolder.path + CONFIG.PATH_SEPATATOR + srcFolder.name;
+                dialog.srcFolder.text = srcFolder.path + CONFIG.PATH_SEPATATOR + srcFolder.name;
                 CONFIG.SRC_FOLDER = srcFolder;
-                if ( trim(dialog.filename.text) == "" ) {
-                    dialog.filename.text = srcFolder.name + "-merged.ai";
+                if ( trim(dialog.filename.text) == '' ) {
+                    dialog.filename.text = srcFolder.name + '-merged.ai';
                     CONFIG.COMPOSITE_FILE_NAME = dialog.filename.text;
                 }
             }
@@ -152,14 +220,14 @@ function doDisplayDialog() {
             CONFIG.COMPOSITE_FILE_NAME = dialog.filename.text;
 
             if (CONFIG.DEBUG) {
-                logger( "CONFIG.ARTBOARD_WIDTH: "  + CONFIG.ARTBOARD_WIDTH );
-                logger( "CONFIG.ARTBOARD_HEIGHT: " + CONFIG.ARTBOARD_HEIGHT );
-                logger( "CONFIG.COL_WIDTH: "       + CONFIG.COL_WIDTH );
-                logger( "CONFIG.ROW_HEIGHT: "      + CONFIG.ROW_HEIGHT );
-                logger( "CONFIG.SCALE: "           + CONFIG.SCALE );
-                logger( "CONFIG.ROWS: "            + CONFIG.ROWS );
-                logger( "CONFIG.COLS: "            + CONFIG.COLS );
-                logger( "CONFIG.SPACING: "         + CONFIG.SPACING );
+                logger( 'CONFIG.ARTBOARD_WIDTH: '  + CONFIG.ARTBOARD_WIDTH );
+                logger( 'CONFIG.ARTBOARD_HEIGHT: ' + CONFIG.ARTBOARD_HEIGHT );
+                logger( 'CONFIG.COL_WIDTH: '       + CONFIG.COL_WIDTH );
+                logger( 'CONFIG.ROW_HEIGHT: '      + CONFIG.ROW_HEIGHT );
+                logger( 'CONFIG.SCALE: '           + CONFIG.SCALE );
+                logger( 'CONFIG.ROWS: '            + CONFIG.ROWS );
+                logger( 'CONFIG.COLS: '            + CONFIG.COLS );
+                logger( 'CONFIG.SPACING: '         + CONFIG.SPACING );
             }
 
             dialog.close();
@@ -187,7 +255,7 @@ function filesToArtboards() {
         return;
     }
 
-    var srcFolder = CONFIG.SRC_FOLDER;
+    srcFolder = CONFIG.SRC_FOLDER;
 
     if ( srcFolder == null ) return;
 
@@ -195,6 +263,9 @@ function filesToArtboards() {
      * Gets only the SVG files…
      */
     fileList = getFilesInSubfolders(srcFolder); // srcFolder.getFiles(/\.svg$/i);
+
+    logger("File count: " + fileList.length + "\n");
+    logger(fileList);
 
     /**
      * Make sure it has AI files in it…
@@ -277,14 +348,11 @@ function filesToArtboards() {
 
 function getFilesInSubfolders( srcFolder ) {
 
-    var allFiles    = [];
-    var theFolders  = [];
-    var svgFileList = [];
-
     if ( ! srcFolder instanceof Folder) return;
 
-    allFiles = srcFolder.getFiles();
-    theFolders = [];
+    var allFiles    = srcFolder.getFiles();
+    var theFolders  = [];
+    var svgFileList = [];
 
     for (var x=0; x < allFiles.length; x++) {
         if (allFiles[x] instanceof Folder) {
