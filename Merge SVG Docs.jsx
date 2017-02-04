@@ -38,11 +38,11 @@ var CONFIG = {
 var LANG = {
     CHOOSE_FOLDER          : 'Please choose your Folder of files to merge',
     NO_SELECTION           : 'No selection',
-    LABEL_DIALOG_WINDOW    : 'SVG Files to Artboards',
+    LABEL_DIALOG_WINDOW    : 'Merge SVG Files',
     LABEL_ARTBOARD_WIDTH   : 'Artboard Width:',
     LABEL_ARTBOARD_HEIGHT  : 'Artboard Height:',
-    LABEL_COL_COUNT        : 'Column Count:',
-    LABEL_ROW_COUNT        : 'Row Count:',
+    LABEL_COL_COUNT        : 'Columns:',
+    LABEL_ROW_COUNT        : 'Rows:',
     LABEL_ARTBOARD_SPACING : 'Artboard Spacing:',
     LABEL_SCALE            : 'Scale:',
     LABEL_FILE_NAME        : 'File Name:',
@@ -144,42 +144,61 @@ function doDisplayDialog() {
 
     try {
 
-        var c1 = 28;
-        var c2 = 164;
+        /**
+         * Row height
+         * @type {number}
+         */
+        var rh = 30;
+
+        /**
+         * Column width
+         * @type {number}
+         */
+        var cw  = 112;
+
+        var c1  = 28;
+        var c1w = c1 + 112;
+
+        var c2  = 164;
+        var c2w = c2 + 50;
+
         var p1 = 16;
+        var p2 = dialogWidth - 16;
 
-        dialog.sizePanel              = dialog.add('panel',      [p1, 16, 434, 200], LANG.LABEL_SIZE);
-        dialog.outputPanel            = dialog.add('panel',      [p1, 200, 434, 290], LANG.LABEL_OUTPUT);
-        dialog.sourcePanel            = dialog.add('panel',      [p1, 290, 434, 350], LANG.LABEL_INPUT);
+        var r1 = 40;
 
-        dialog.artboardWidthLabel     = dialog.add('statictext', [c1, 40, 140, 70],   LANG.LABEL_ARTBOARD_WIDTH);
-        dialog.artboardWidth          = dialog.add('edittext',   [c2, 40, 214, 70],   CONFIG.ARTBOARD_WIDTH);
+        dialog.sizePanel              = dialog.add('panel',      [p1, 16, p2, 200], LANG.LABEL_SIZE);
+        dialog.outputPanel            = dialog.add('panel',      [p1, 200, p2, 290], LANG.LABEL_OUTPUT);
+        dialog.sourcePanel            = dialog.add('panel',      [p1, 290, p2, 350], LANG.LABEL_INPUT);
+
+        dialog.artboardWidthLabel     = dialog.add('statictext', [c1, r1, c1w, 70],   LANG.LABEL_ARTBOARD_WIDTH);
+        dialog.artboardWidth          = dialog.add('edittext',   [c2, r1, c2w, 70],   CONFIG.ARTBOARD_WIDTH);
         dialog.artboardWidth.active   = true;
 
-        dialog.artboardHeightLabel    = dialog.add('statictext', [c1, 70, 140, 100],  LANG.LABEL_ARTBOARD_HEIGHT);
-        dialog.artboardHeight         = dialog.add('edittext',   [c2, 70, 214, 100],  CONFIG.ARTBOARD_HEIGHT);
+        dialog.artboardHeightLabel    = dialog.add('statictext', [c1, 70, c1w, 100],  LANG.LABEL_ARTBOARD_HEIGHT);
+        dialog.artboardHeight         = dialog.add('edittext',   [c2, 70, c2w, 100],  CONFIG.ARTBOARD_HEIGHT);
         dialog.artboardHeight.active  = true;
 
-        dialog.artboardSpacingLabel   = dialog.add('statictext', [c1, 100, 140, 130], LANG.LABEL_ARTBOARD_SPACING);
-        dialog.artboardSpacing        = dialog.add('edittext',   [c2, 100, 214, 130], CONFIG.ARTBOARD_SPACING);
+        dialog.artboardSpacingLabel   = dialog.add('statictext', [c1, 100, c1w, 130], LANG.LABEL_ARTBOARD_SPACING);
+        dialog.artboardSpacing        = dialog.add('edittext',   [c2, 100, c2w, 130], CONFIG.ARTBOARD_SPACING);
         dialog.artboardSpacing.active = true;
 
-        dialog.rowsLabel              = dialog.add('statictext', [c1, 130, 140, 160], LANG.LABEL_ROW_COUNT);
-        dialog.rows                   = dialog.add('edittext',   [c2, 130, 214, 160], CONFIG.ARTBOARD_ROWSxCOLS);
-        dialog.rows.active            = true;
+        dialog.colsLabel              = dialog.add('statictext', [c1, 130, c1w, 160], LANG.LABEL_COL_COUNT);
+        dialog.cols                   = dialog.add('edittext',   [c2, 130, c2w, 160], CONFIG.ARTBOARD_ROWSxCOLS);
+        dialog.cols.active            = true;
 
-        dialog.scaleLabel             = dialog.add('statictext', [c1, 160, 140, 190], LANG.LABEL_SCALE);
-        dialog.scale                  = dialog.add('edittext',   [c2, 160, 214, 190], CONFIG.SCALE);
+        dialog.scaleLabel             = dialog.add('statictext', [c1, 160, c1w, 190], LANG.LABEL_SCALE);
+        dialog.scale                  = dialog.add('edittext',   [c2, 160, c2w, 190], CONFIG.SCALE);
         dialog.scale.active           = true;
 
-        dialog.filenameLabel          = dialog.add('statictext', [c1, 220, 140, 250], LANG.LABEL_FILE_NAME);
+        dialog.filenameLabel          = dialog.add('statictext', [c1, 220, c1w, 250], LANG.LABEL_FILE_NAME);
         dialog.filename               = dialog.add('edittext',   [c2, 220, 334, 250], '');
         dialog.filename.active        = true;
 
-        dialog.logging                = dialog.add('checkbox',   [c1, 260, 140, 330], LANG.LABEL_LOGGING);
+        dialog.logging                = dialog.add('checkbox',   [c1, 260, c1w, 330], LANG.LABEL_LOGGING);
         dialog.logging.value          = CONFIG.LOGGING;
 
-        dialog.folderBtn              = dialog.add('button',     [c1, 310, 140, 340],  LANG.LABEL_CHOOSE_FOLDER, {name: 'folder'})
+        dialog.folderBtn              = dialog.add('button',     [c1, 310, c1w, 340],  LANG.LABEL_CHOOSE_FOLDER, {name: 'folder'})
 
         dialog.srcFolder              = dialog.add('edittext',   [140, 310, 424, 340], "");
         dialog.srcFolder.active       = false;
@@ -216,19 +235,8 @@ function doDisplayDialog() {
             CONFIG.LOGGING             = dialog.logging.value;
             CONFIG.SPACING             = parseInt(dialog.artboardSpacing.text);
             CONFIG.SCALE               = parseInt(dialog.scale.text);
-            CONFIG.ARTBOARD_ROWSxCOLS  = parseInt(dialog.rows.text);
+            CONFIG.ARTBOARD_ROWSxCOLS  = parseInt(dialog.cols.text);
             CONFIG.COMPOSITE_FILE_NAME = dialog.filename.text;
-
-            if (CONFIG.DEBUG) {
-                logger( 'CONFIG.ARTBOARD_WIDTH: '  + CONFIG.ARTBOARD_WIDTH );
-                logger( 'CONFIG.ARTBOARD_HEIGHT: ' + CONFIG.ARTBOARD_HEIGHT );
-                logger( 'CONFIG.COL_WIDTH: '       + CONFIG.COL_WIDTH );
-                logger( 'CONFIG.ROW_HEIGHT: '      + CONFIG.ROW_HEIGHT );
-                logger( 'CONFIG.SCALE: '           + CONFIG.SCALE );
-                logger( 'CONFIG.ROWS: '            + CONFIG.ROWS );
-                logger( 'CONFIG.COLS: '            + CONFIG.COLS );
-                logger( 'CONFIG.SPACING: '         + CONFIG.SPACING );
-            }
 
             dialog.close();
             response = true;

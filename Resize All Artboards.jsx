@@ -1,16 +1,13 @@
+/**
+ * Based on the script resizeArtboards_CS4andUp.jsx by Carlos Canto 11/4/12
+ */
+
 #target Illustrator  
 
 var OPTIONS = {
     size: 32
 }
-  
-  
-//  script.name = resizeArtboards_CS4andUp.jsx;  
-//  script.description = resizes all artboards;  
-//  script.requirement = one document with at least one artboard;  
-//  script.parent = carlos canto // 11/4/12;  
-//  script.elegant = false;  
-  
+
 if (app.documents.length > 0) {  
   
   
@@ -47,4 +44,4 @@ if (app.documents.length > 0) {
 }  
  else  {  
         alert ("there are no open documents");  
-}  
+} 
