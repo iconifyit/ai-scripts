@@ -1,4 +1,4 @@
-#target Illustrator
+// #target Illustrator
 
 var logging = true;
 
@@ -11,7 +11,7 @@ var logging = true;
  *     ARTBOARD_SPACING: number,
  *     ARTBOARD_ROWSxCOLS: number,
  *     LOG_FILE_PATH: string,
- *     COMPOSITE_FILE_NAME: string,
+ *     OUTPUT_FILENAME: string,
  *     SCALE: number,
  *     ROOT: string,
  *     SRC_FOLDER: string,
@@ -25,7 +25,7 @@ var CONFIG = {
     ARTBOARD_SPACING    : 64,
     ARTBOARD_ROWSxCOLS  : 10,
     LOG_FILE_PATH       : "~/Downloads/ai-script-log.txt",
-    COMPOSITE_FILE_NAME : "merged-files.ai",
+    OUTPUT_FILENAME     : "merged-files.ai",
     SCALE               : 100,
     ROOT                : "~/Documents",
     SRC_FOLDER          : "",
@@ -223,7 +223,7 @@ function doDisplayDialog() {
                 CONFIG.SRC_FOLDER = srcFolder;
                 if ( trim(dialog.filename.text) == '' ) {
                     dialog.filename.text = srcFolder.name + '-merged.ai';
-                    CONFIG.COMPOSITE_FILE_NAME = dialog.filename.text;
+                    CONFIG.OUTPUT_FILENAME = dialog.filename.text;
                 }
             }
         }
@@ -236,7 +236,7 @@ function doDisplayDialog() {
             CONFIG.SPACING             = parseInt(dialog.artboardSpacing.text);
             CONFIG.SCALE               = parseInt(dialog.scale.text);
             CONFIG.ARTBOARD_ROWSxCOLS  = parseInt(dialog.cols.text);
-            CONFIG.COMPOSITE_FILE_NAME = dialog.filename.text;
+            CONFIG.OUTPUT_FILENAME     = dialog.filename.text;
 
             dialog.close();
             response = true;
@@ -348,7 +348,7 @@ function filesToArtboards() {
         };
 
         saveFileAsAi(
-            CONFIG.SRC_FOLDER.path + CONFIG.PATH_SEPATATOR + CONFIG.COMPOSITE_FILE_NAME
+            CONFIG.SRC_FOLDER.path + CONFIG.PATH_SEPATATOR + CONFIG.OUTPUT_FILENAME
         );
     };
 
