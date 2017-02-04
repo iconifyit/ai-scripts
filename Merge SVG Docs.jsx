@@ -1,6 +1,48 @@
-// #target Illustrator
+/**
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2017 Scott Lewis
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ */
+/**
+ * @author  Scott Lewis <scott@iconify.it>
+ * @date    2017-02-04
+ *
+ *  Installation:
+ *
+ *      1. Copy this file to Illustrator > Presets > Scripting
+ *      2. Restart Adobe Illustrator
+ *      3. Go to File > Scripts > Merge SVG Docs
+ *      4. Follow the prompts
+ *
+ *  Usage:
+ *
+ *      This script will import a folder of SVG files and merge them into a single document with
+ *      the contents of each SVG file placed on a separate artboard. The artboard name will be set
+ *      to the original SVG file's name without the file extension. Up to Adobe Illustrator 2015.3,
+ *      it is only possible to import a maximum of 100 files since Illustrator only supports a
+ *      maximum of 100 artboards.
+ */
 
-var logging = true;
+#target Illustrator
 
 /**
  * Default configuration. Many of these values are over-written by the dialog.
@@ -25,6 +67,7 @@ var CONFIG = {
     ARTBOARD_SPACING    : 64,
     ARTBOARD_ROWSxCOLS  : 10,
     LOG_FILE_PATH       : "~/Downloads/ai-script-log.txt",
+    LOGGING             : true,
     OUTPUT_FILENAME     : "merged-files.ai",
     SCALE               : 100,
     ROOT                : "~/Documents",
@@ -80,7 +123,7 @@ function get( subject, key, _default ) {
  */
 function getScreenSize() {
 
-    if ( view = app.activeDocument.views[0] ) {
+    if (view = app.activeDocument.views[0] ) {
         view.zoom = 1;
         return {
             left   : parseInt(view.bounds[0]),
@@ -111,18 +154,17 @@ function getScreenSize() {
  *    - side margins          = (page width - (col count * col width))/2
  *    - top/bottom margins    = (page height - (row count * row width))/2
  *
- * @return Settings object
+ * @return boolean|Settings object
  */
 function doDisplayDialog() {
 
+    var response     = false;
     var dialogWidth  = 450;
     var dialogHeight = 410;
-
-    var dialogLeft = 550;
-    var dialogTop  = 300;
+    var dialogLeft   = 550;
+    var dialogTop    = 300;
 
     if ( bounds = getScreenSize() ) {
-
         dialogLeft = Math.abs(Math.ceil((bounds.width/2) - (dialogWidth/2)));
         // dialogTop  = Math.abs(Math.ceil((bounds.height) - (dialogHeight/2)));
     }
@@ -132,7 +174,7 @@ function doDisplayDialog() {
      * default: //550, 350, 1000, 800
      */
 
-    var dialog   = new Window(
+    var dialog = new Window(
         "dialog", LANG.LABEL_DIALOG_WINDOW, [
             dialogLeft,
             dialogTop,
@@ -140,7 +182,6 @@ function doDisplayDialog() {
             dialogTop + dialogHeight
         ]
     );
-    var response = false;
 
     try {
 
@@ -167,9 +208,9 @@ function doDisplayDialog() {
 
         var r1 = 40;
 
-        dialog.sizePanel              = dialog.add('panel',      [p1, 16, p2, 200], LANG.LABEL_SIZE);
-        dialog.outputPanel            = dialog.add('panel',      [p1, 200, p2, 290], LANG.LABEL_OUTPUT);
-        dialog.sourcePanel            = dialog.add('panel',      [p1, 290, p2, 350], LANG.LABEL_INPUT);
+        dialog.sizePanel              = dialog.add('panel',      [p1, 16, p2, 200],   LANG.LABEL_SIZE);
+        dialog.outputPanel            = dialog.add('panel',      [p1, 200, p2, 290],  LANG.LABEL_OUTPUT);
+        dialog.sourcePanel            = dialog.add('panel',      [p1, 290, p2, 350],  LANG.LABEL_INPUT);
 
         dialog.artboardWidthLabel     = dialog.add('statictext', [c1, r1, c1w, 70],   LANG.LABEL_ARTBOARD_WIDTH);
         dialog.artboardWidth          = dialog.add('edittext',   [c2, r1, c2w, 70],   CONFIG.ARTBOARD_WIDTH);
@@ -213,6 +254,7 @@ function doDisplayDialog() {
         };
 
         dialog.folderBtn.onClick = function() {
+            var srcFolder;
             if ( srcFolder = Folder.selectDialog( CONFIG.CHOOSE_FOLDER ) ) {
 
                 if ( srcFolder.fs == 'Windows' ) {
@@ -270,7 +312,7 @@ function filesToArtboards() {
     /**
      * Gets only the SVG files…
      */
-    fileList = getFilesInSubfolders(srcFolder); // srcFolder.getFiles(/\.svg$/i);
+    fileList = getFilesInSubfolders(srcFolder);
 
     logger("File count: " + fileList.length + "\n");
     logger(fileList);
@@ -279,12 +321,6 @@ function filesToArtboards() {
      * Make sure it has AI files in it…
      */
     if (fileList.length > 0) {
-
-        /**
-         * Metric MM converter…
-         * @type {number}
-         */
-        mm = 2.83464567
 
         /**
          * Set the script to work with artboard rulers
@@ -379,7 +415,6 @@ function getFilesInSubfolders( srcFolder ) {
             }
         }
     }
-
     return svgFileList;
 }
 
@@ -390,7 +425,7 @@ function getFilesInSubfolders( srcFolder ) {
 function saveFileAsAi(dest) {
     if (app.documents.length > 0) {
         var options = new IllustratorSaveOptions();
-        var theDoc = new File(dest);
+        var theDoc  = new File(dest);
         options.flattenOutput = OutputFlattening.PRESERVEAPPEARANCE;
         options.pdfCompatible = true;
         app.activeDocument.saveAs(theDoc, options);
@@ -405,7 +440,7 @@ function alignToNearestPixel(sel) {
 
     try {
         if (typeof sel != "object") {
-            logger(CONFIG.NO_SELECTION);
+            logger(LANG.NO_SELECTION);
         }
         else {
             for (i = 0 ; i < sel.length; i++) {
