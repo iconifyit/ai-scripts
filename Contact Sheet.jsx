@@ -1,7 +1,7 @@
 /**
  * The MIT License (MIT)
  *
- * Copyright (c) 2017 Scott Lewis
+ * Copyright (c) 2017 Iconfinder
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@
  */
 
 /**
- * @author  Scott Lewis <scott@iconify.it>
+ * @author  Iconfinder <scott@iconfinder.com>
  * @date    2017-02-04
  *
  *  Installation:
@@ -75,7 +75,17 @@ var LANG = {
      * Dialog window label
      */
 
-    LABEL_DIALOG_WINDOW: "Please choose a folder of SVG files.",
+    LABEL_DIALOG_WINDOW: "Contact Sheet Settings",
+
+    /**
+     * Confirm delete preset
+     */
+    CONFIRM_DELETE_PRESET: 'Are you sure you want to delete the preset file?',
+
+    /**
+     * Choose file string
+     */
+    CHOOSE_FILE: "Choose a file",
 
     /**
      * No selection error string.
@@ -138,6 +148,17 @@ var LANG = {
     BUTTON_OK: "Ok",
 
     /**
+     * Save button text
+     */
+
+    BUTTON_SAVE: "Save Preset",
+
+    /**
+     * Delete button text
+     */
+    BUTTON_DELETE: "Delete",
+
+    /**
      * Object does not exist error string.
      */
 
@@ -177,7 +198,12 @@ var LANG = {
      * Output field label.
      */
 
-    LABEL_OUTPUT: "Output"
+    LABEL_OUTPUT: "Output",
+
+    /**
+     * Presets label
+     */
+    LABEL_PRESETS: "Presets"
 };
 
 /**
@@ -213,93 +239,93 @@ var CONFIG = {
     /**
      * Number of rows
      */
-    
+
     ROWS: 10,
-    
+
     /**
      * Number of columns
      */
-    
+
     COLS: 10,
-    
+
     /**
-     * Top & bottom page margins 
+     * Top & bottom page margins
      */
-    
+
     VOFF: 64,
-    
+
     /**
      * Left & Right page margins
      */
-     
+
     HOFF: 64,
-    
+
     /**
      * Row height. This is set programmatically.
      */
-     
+
     ROW_WIDTH: 64,
-    
+
     /**
      * Column Height. This is set programmatically.
      */
-     
+
     COL_WIDTH: 64,
-    
+
     /**
      * @deprecated
      */
     FRM_WIDTH: 64,
-    
+
     /**
      * @deprecated
      */
     FRM_HEIGHT: 64,
-    
+
     /**
      * Artboard width
-     * 
+     *
      * 10 columns 128 px wide, with 64 px page margins
      */
-    
+
     PG_WIDTH: 1120, // 2112, // 1408, // 792, // 1060,
-    
+
     /**
      * Artboard height
      *
      * 20 rows 128 px tall, with 64 px page margins
      */
-    
+
     PG_HEIGHT: 1400, // 2688, // 1300, // 6000,
-    
+
     /**
      * Not yet fully-implemented. Will support multiple units
      */
-    
+
     PG_UNITS: "px",
-    
+
     /**
      * @deprecated
      */
 
     GUTTER: 0,
-    
+
     /**
      * Enter scale in percentage 1-100
      */
-    
+
     SCALE: 100,
-    
+
     /**
      * Illustrator version compatibility
      */
-    
+
     AIFORMAT: Compatibility.ILLUSTRATOR10,
-    
+
     /**
      * If the icon is larger than the cell size, shrink it to the cell size
      */
-     
+
     SHRINK_TO_FIT: true,
 
     /**
@@ -307,41 +333,58 @@ var CONFIG = {
      */
 
     START_FOLDER: "~/github/iconify",
-    
+
     /**
      * The contact sheet file name
      */
-     
+
     FILENAME: "contact-sheet",
-    
+
     /**
      * Enable logging?
      */
-     
+
     LOGGING: true,
-       
-    /**
-     * Log file location
-     */
-     
-    LOG_FILE_PATH: "~/Desktop/ai-contactsheet-log.txt",
-    
+
     /**
      * Verbose logging output?
      */
     DEBUG: true,
-        
+
     /**
      * @deprecated
      */
-     
-    SKIP_COLS: 0, 
-    
+
+    SKIP_COLS: 0,
+
     /**
      * Not fully-implemented
      */
-     
-    STRIP: ["svg", "ai", "eps", "txt", "pdf"]
+
+    STRIP: ["svg", "ai", "eps", "txt", "pdf"],
+
+    /**
+     * Presets folder path
+     */
+    PRESETS_FOLDER: '~/ai-contact-sheet/presets',
+
+    /**
+     * Log folder path
+     */
+
+    LOG_FOLDER: '~/ai-contact-sheet/logs/',
+
+    /**
+     * Log file location
+     */
+
+    LOG_FILE_PATH: '~/ai-contact-sheet/logs/' + doDateFormat(new Date()) + '-log.txt',
+
+    /**
+     * Default path separator
+     */
+
+    PATH_SEPATATOR: "/"
 };
 
 /**
@@ -446,15 +489,19 @@ function doDisplayDialog() {
         var c1  = 28;
         var c1w = c1 + 112;
 
-        var c2  = 164;
+        var c2  = 142;
         var c2w = c2 + 50;
 
         var p1 = 16;
         var p2 = dialogWidth - 16;
+        var p3 = (dialogWidth / 2 ) - 16
+        var p4 = p3 + 16
+        var p5 = p4 +  p3;
 
         var r1 = 40;
 
-        dialog.sizePanel         = dialog.add('panel',      [p1, 16, p2, 200],    LANG.LABEL_SIZE);
+        dialog.sizePanel         = dialog.add('panel',      [p1, 16, p3, 200],    LANG.LABEL_SIZE);
+        dialog.presetsPanel      = dialog.add('panel',      [p4, 16, p5, 200],    LANG.LABEL_PRESETS);
         dialog.outputPanel       = dialog.add('panel',      [p1, 200, p2, 290],   LANG.LABEL_OUTPUT);
         dialog.sourcePanel       = dialog.add('panel',      [p1, 290, p2, 350],   LANG.LABEL_INPUT);
 
@@ -490,33 +537,19 @@ function doDisplayDialog() {
         dialog.srcFolder         = dialog.add('edittext',   [140, 310, 424, 340], '');
         dialog.srcFolder.active  = false;
 
+        dialog.presets           = dialog.add("listbox",    [p4 + 16, 48, p5 - 16, 184]);
+
         dialog.cancelBtn         = dialog.add('button',     [232, 360, 332, 390], LANG.BUTTON_CANCEL, {name: 'cancel'});
         dialog.openBtn           = dialog.add('button',     [334, 360, 434, 390], LANG.BUTTON_OK, {name: 'ok'});
+        dialog.saveBtn           = dialog.add('button',     [p1,  360, p1 + 120, 390], LANG.BUTTON_SAVE, {name: 'save'});
 
-        dialog.cancelBtn.onClick = function() {
-            dialog.close();
-            response = false;
-            return false;
-        };
+        dialog.saveBtn.enabled = false;
+        dialog.openBtn.enabled = false;
 
-        dialog.folderBtn.onClick = function() {
-            var srcFolder;
-            if ( srcFolder = Folder.selectDialog( CONFIG.CHOOSE_FOLDER ) ) {
+        initPresetsList(dialog);
+        initButtons();
 
-                if ( srcFolder.fs == 'Windows' ) {
-                    CONFIG.PATH_SEPATATOR = "\\"
-                }
-
-                dialog.srcFolder.text = srcFolder.path + CONFIG.PATH_SEPATATOR + srcFolder.name;
-                CONFIG.SRC_FOLDER = srcFolder;
-                if ( trim(dialog.filename.text) == '' ) {
-                    dialog.filename.text = srcFolder.name + '-merged.ai';
-                    CONFIG.OUTPUT_FILENAME = dialog.filename.text;
-                }
-            }
-        };
-
-        dialog.openBtn.onClick = function() {
+        function captureSettings() {
 
             CONFIG.PG_WIDTH        = parseInt(dialog.pageWidth.text);
             CONFIG.PG_HEIGHT       = parseInt(dialog.pageHeight.text);
@@ -529,18 +562,273 @@ function doDisplayDialog() {
             CONFIG.FRM_WIDTH       = CONFIG.COL_WIDTH;
             CONFIG.FRM_HEIGHT      = CONFIG.ROW_HEIGHT;
             CONFIG.OUTPUT_FILENAME = dialog.filename.text;
+        }
+
+        function initButtons() {
+
+            dialog.saveBtn.enabled = false;
+            dialog.openBtn.enabled = false;
+
+            if (trim(dialog.pageWidth.text) == "") return;
+            if (trim(dialog.pageHeight.text) == "") return;
+            if (trim(dialog.cols.text) == "") return;
+            if (trim(dialog.rows.text) == "") return;
+            if (trim(dialog.scale.text) == "") return;
+            if (parseInt(dialog.pageWidth.text) < 10 ) return;
+            if (parseInt(dialog.pageHeight.text) < 10 ) return;
+            if (parseInt(dialog.cols.text) < 10 ) return;
+            if (parseInt(dialog.rows.text) < 10 ) return;
+            if (parseInt(dialog.scale.text) < 1 ) return;
+
+            dialog.saveBtn.enabled = true;
+
+            if (trim(dialog.filename.text) == "") return;
+            if (trim(dialog.srcFolder.text) == "") return;
+
+            var testFolder = new Folder(dialog.srcFolder.text);
+            if (! testFolder.exists) return;
+
+            dialog.openBtn.enabled = true;
+        }
+
+        dialog.pageWidth.onChange  = initButtons;
+        dialog.pageHeight.onChange = initButtons;
+        dialog.cols.onChange       = initButtons;
+        dialog.rows.onChange       = initButtons;
+        dialog.scale.onChange      = initButtons;
+        dialog.filename.onChange   = initButtons;
+        dialog.srcFolder.onChange  = initButtons;
+
+        dialog.cancelBtn.onClick = function() {
+            dialog.close();
+            response = false;
+            return false;
+        };
+
+        dialog.saveBtn.onClick = function() {
+
+            captureSettings();
+
+            try {
+                var filename = CONFIG.PG_WIDTH + "x" + CONFIG.PG_HEIGHT + "@" + CONFIG.SCALE + ".json";
+
+                write_file(
+                    CONFIG.PRESETS_FOLDER + "/" + filename,
+                    objectToString({
+                        "PG_WIDTH"  : CONFIG.PG_WIDTH,
+                        "PG_HEIGHT" : CONFIG.PG_HEIGHT,
+                        "COLS"      : CONFIG.COLS,
+                        "ROWS"      : CONFIG.ROWS,
+                        "SCALE"     : CONFIG.SCALE
+                    }),
+                    true
+                );
+            }
+            catch(ex) {
+                logger('dialog.saveBtn.onClick - ' + ex);
+            }
+
+            initPresetsList(dialog);
+            initButtons();
+
+            response = false;
+        };
+
+        dialog.folderBtn.onClick = function() {
+            var srcFolder;
+            if ( srcFolder = Folder.selectDialog( CONFIG.CHOOSE_FOLDER ) ) {
+
+                if ( srcFolder.fs == 'Windows' ) {
+                    CONFIG.PATH_SEPATATOR = "\\"
+                }
+
+                dialog.srcFolder.text = srcFolder.path + CONFIG.PATH_SEPATATOR + srcFolder.name;
+                CONFIG.SRC_FOLDER = srcFolder;
+
+                if ( trim(dialog.filename.text) == '' ) {
+                    dialog.filename.text = srcFolder.name + '-merged.ai';
+                    CONFIG.OUTPUT_FILENAME = dialog.filename.text;
+                }
+                initButtons();
+            }
+        };
+
+        dialog.openBtn.onClick = function() {
+
+            captureSettings();
 
             dialog.close();
             response = true;
             return true;
         };
+
         dialog.show();
     }
     catch(ex) {
-        logger(ex);
+        logger('doDisplayDialog - ' + ex);
         alert(ex);
     }
     return response;
+}
+
+/**
+ * Initialize a folder.
+ */
+function initFolder( path ) {
+    var theFolder = new Folder( path );
+    if (! theFolder.exists) {
+        theFolder.create();
+    }
+    return theFolder;
+}
+
+/**
+ * Stringify an object.
+ * @param obj
+ * @returns {string}
+ */
+function objectToString(obj) {
+    var items = [];
+    for (key in obj) {
+        var value = obj[key];
+        if (typeof(value) == "array") {
+            for (var i=0; i<value.length; i++) {
+                value[i] = '"' + value[i] + '"';
+            }
+            value = '[' + value.join(',') + ']';
+        }
+        else if (typeof(value) == 'object') {
+            value = objectToString(value);
+        }
+        items.push('"' + key + '": "' + value + '"');
+    }
+    return "{" + items.join(',') + "}";
+}
+
+/**
+ * Initialize the presets select list
+ * @param dialog
+ */
+function initPresetsList(dialog) {
+
+    var presets, presetsFolder;
+
+    try {
+        presetsFolder = initFolder( CONFIG.PRESETS_FOLDER );
+
+        if (presets = presetsFolder.getFiles("*.json")) {
+
+            if (dialog.presets) {
+                dialog.presets.removeAll();
+            }
+
+            for (i=0; i<presets.length; i++) {
+                item = dialog.presets.add("item", (new File(presets[i])).name);
+            }
+
+            dialog.presets.onChange = function() {
+                if ( dialog.presets.selection ) {
+                    doUpdatePresets( dialog, CONFIG.PRESETS_FOLDER + "/" + dialog.presets.selection.text);
+                }
+            }
+
+            dialog.presets.onDoubleClick = function() {
+                if ( filename = dialog.presets.selection.text ) {
+                    try {
+                        if (confirm(LANG.CONFIRM_DELETE_PRESET)) {
+                            new File(CONFIG.PRESETS_FOLDER + "/" + filename).remove();
+                        }
+                    }
+                    catch(ex) {
+                        logger('removePresetsFile - ' + ex.message);
+                    }
+                    initPresetsList(dialog);
+                }
+            }
+        }
+    }
+    catch(ex) {
+        logger('initPresetsList - ' + ex.message);
+    }
+}
+
+/**
+ * Opens a session
+ *
+ */
+function doUpdatePresets( dialog, filepath ) {
+
+    var contents;
+    try {
+        if ( contents = read_file( filepath ) ) {
+
+            var obj = eval("(" + contents + ")" );
+
+            if (typeof(obj) == "object") {
+
+                dialog.pageWidth.text  = get(obj, 'PG_WIDTH',  '');
+                dialog.pageHeight.text = get(obj, 'PG_HEIGHT', '');
+                dialog.cols.text       = get(obj, 'COLS',      '');
+                dialog.rows.text       = get(obj, 'ROWS',      '');
+                dialog.scale.text      = get(obj, 'SCALE',     '');
+            }
+        }
+        else {
+            dialog.presetsMsgBox.text = "Presets file was empty";
+            setTimeout(function() {
+                dialog.presetsMsgBox.text = "";
+            }, 5000 );
+        }
+    }
+    catch(ex) {
+        logger('doUpdatePresets - ' + ex.message);
+    }
+
+}
+
+/**
+ * Reads the contents of a file.
+ * @param filepath
+ * @returns {string}
+ */
+function read_file( filepath ) {
+
+    var content = "";
+
+    var theFile = new File(filepath);
+
+    if (theFile) {
+
+        try {
+            if (theFile.alias) {
+                while (theFile.alias) {
+                    theFile = theFile.resolve().openDlg(
+                        LANG.CHOOSE_FILE,
+                        txt_filter,
+                        false
+                    );
+                }
+            }
+        }
+        catch(ex) {
+            dialog.presetsMsgBox.text = ex.message;
+        }
+
+        try {
+            theFile.open('r', undefined, undefined);
+            if (theFile !== '') {
+                content = theFile.read();
+                theFile.close();
+            }
+        }
+        catch(ex) {
+
+            try { theFile.close(); }catch(ex){};
+            logger("read_file - " + ex);
+        }
+    }
+
+    return content;
 }
 
 /**
@@ -567,11 +855,11 @@ function stripFileExtension(filename) {
  * Main logic to create the contact sheet.
  * @return void
  */
-function doCreateContactSheet() {  
-  
+function doCreateContactSheet() {
+
     var doc, fileList, srcFolder, svgFile, allFiles,
-        theFolders, svgFileList, theLayer;  
-    
+        theFolders, svgFileList, theLayer;
+
     var saveCompositeFile = false;
 
     if (! doDisplayDialog()) {
@@ -820,14 +1108,48 @@ function trim(str) {
 function logger(txt) {
 
     if (CONFIG.LOGGING == 0) return;
-    var file = new File(CONFIG.LOG_FILE_PATH);
+    initFolder( CONFIG.LOG_FOLDER );
+    write_file(CONFIG.LOG_FILE_PATH, "[" + new Date().toUTCString() + "] " + txt);
+}
+
+/**
+ * Logging for this script.
+ * @param {string}  path        The file path
+ * @param {string}  txt         The text to write
+ * @param {bool}    replace     Replace the file
+ * @return void
+ */
+function write_file( path, txt, replace ) {
+
+    var file = new File( path );
+    if (replace && file.exists) {
+        file.remove();
+        file = new File( path );
+    }
     file.open("e", "TEXT", "????");
     file.seek(0,2);
     $.os.search(/windows/i)  != -1 ? file.lineFeed = 'windows'  : file.lineFeed = 'macintosh';
-    file.writeln("[" + new Date().toUTCString() + "] " + txt);
+    file.writeln(txt);
     file.close();
 }
 
-doCreateContactSheet(); 
+/**
+ * Format the date in YYYY-MM-DD format
+ * @param string date  The date in timestring format
+ * @return date string in YYYY-MM-DD format (2015-10-06)
+ */
+function doDateFormat(date) {
+    var d = new Date(date),
+        month = '' + (d.getMonth() + 1),
+        day = '' + d.getDate(),
+        year = d.getFullYear();
+
+    if (month.length < 2) month = '0' + month;
+    if (day.length < 2) day = '0' + day;
+
+    return [year, month, day].join('-');
+}
+
+doCreateContactSheet();
 
 userInteractionLevel = originalInteractionLevel;
