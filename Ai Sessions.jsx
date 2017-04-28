@@ -32,7 +32,7 @@ userInteractionLevel = UserInteractionLevel.DONTDISPLAYALERTS;
  */
 
 var CONST = {
-    SRCFOLDER:      "~/ai-sessions",
+    SRCFOLDER:      "/Users/scott/Dropbox (Personal)/ai-sessions",
     LOGFOLDER:      "~/ai-sessions",
     NO_OPEN_DOCS:   "There are no open docs to save for this session",
     NO_DOC_SELECTED: "You have not selected a session to open",
