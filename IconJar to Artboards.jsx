@@ -32,10 +32,9 @@
  *
  *      This script will import a folder of SVG files and merge them into a single document with
  *      the contents of each SVG file placed on a separate artboard. The artboard name will be set
- *      to the original SVG file's name without the file extension. The script will also search 
- *      through any nested folders for SVG files. As of Adobe Illustrator CC 2018 (v 22.0.0), 
- *      Illustrator supports a maximum of 1,000 artboards so the script will only import 
- *      the first 1,000 SVG files it encounters.
+ *      to the original SVG file's name without the file extension. Up to Adobe Illustrator 2015.3,
+ *      it is only possible to import a maximum of 100 files since Illustrator only supports a
+ *      maximum of 100 artboards.
  */
 
 #target Illustrator
@@ -65,15 +64,18 @@ var CONFIG = {
     ARTBOARD_HEIGHT     : 24,
     ARTBOARD_SPACING    : 24,
     ARTBOARD_ROWSxCOLS  : 10,
-    LOG_FILE_PATH       : "~/Downloads/ai-script-log.txt",
-    CONFIG_FILE_PATH    : "~/Downloads/ai-script-conf.json",
+    LOG_FILE_PATH       : "~/Downloads/ai-iconjar2artboards-log.txt",
+    CONFIG_FILE_PATH    : "~/Downloads/ai-ij2ab-conf.json",
     LOGGING             : true,
-    OUTPUT_FILENAME     : "merged-files.ai",
+    OUTPUT_FILENAME     : 'iconjar-to-artboards.ai',
     SCALE               : 100,
     ROOT                : "~/Documents",
-    SRC_FOLDER          : "",
+    SRC_FOLDER          : '~/Desktop/',
+    ICONS_FOLDER        : 'icons/',
     PATH_SEPATATOR      : "/",
-    SORT_ARTBOARDS      : true
+    SORT_ARTBOARDS      : true,
+    META_FILE_NAME      : "META.json",
+    META_FILE           : ''
 }
 
 /**
@@ -102,76 +104,12 @@ var LANG = {
     LABEL_OUTPUT           : 'Output',
     SORT_FILELIST_FAILED   : 'Could not sort the file list',
     LABEL_SORT_ARTBOARDS   : 'Sort Artboards?',
-    PROGRESS               : 'Progress'
+    PROGRESS               : 'IconJar to Illustrator Progress',
+    SCRIPT_PROGRESS        : 'Progress'
 }
 
-
-/**
- * Add Array.indexOf support if not supported natively.
- */
-if(!Array.prototype.indexOf) {
-    /**
-     * Gets the index of an element in an array.
-     * @param what
-     * @param i
-     * @returns {*}
-     */
-    Array.prototype.indexOf = function(what, i) {
-        i = i || 0;
-        var L = this.length;
-        while (i < L) {
-            if(this[i] === what) return i;
-            ++i;
-        }
-        return -1;
-    };
-}
-
-/**
- * Add Array.remove support.
- * @returns {Array}
- */
-Array.prototype.remove = function() {
-    var what, a = arguments, L = a.length, ax;
-    while (L && this.length) {
-        what = a[--L];
-        while ((ax = this.indexOf(what)) !== -1) {
-            this.splice(ax, 1);
-        }
-    }
-    return this;
-};
-
-/*-------------------------------------------------------------------------------------------------------------------------*/
-/**
- * Adds JSON library support for engines that do not include it natively.
- */
-"object"!=typeof JSON&&(JSON={}),function(){"use strict";function f(t){return 10>t?"0"+t:t}function quote(t){
-    return escapable.lastIndex=0,escapable.test(t)?'"'+t.replace(escapable,function(t){var e=meta[t];
-            return"string"==typeof e?e:"\\u"+("0000"+t.charCodeAt(0).toString(16)).slice(-4)})+'"':'"'+t+'"'}
-    function str(t,e){var n,r,o,f,u,i=gap,p=e[t];switch(p&&"object"==typeof p&&"function"==typeof p.toJSON&&(p=p.toJSON(t)),
-    "function"==typeof rep&&(p=rep.call(e,t,p)),typeof p){case"string":return quote(p);case"number":return isFinite(p)?String(p):"null";
-        case"boolean":case"null":return String(p);case"object":if(!p)return"null";if(gap+=indent,u=[],"[object Array]"===Object.prototype.toString.apply(p)){
-            for(f=p.length,n=0;f>n;n+=1)u[n]=str(n,p)||"null";return o=0===u.length?"[]":gap?"[\n"+gap+u.join(",\n"+gap)+"\n"+i+"]":"["+u.join(",")+"]",gap=i,o}
-            if(rep&&"object"==typeof rep)for(f=rep.length,n=0;f>n;n+=1)"string"==typeof rep[n]&&(r=rep[n],o=str(r,p),o&&u.push(quote(r)+(gap?": ":":")+o));
-            else for(r in p)Object.prototype.hasOwnProperty.call(p,r)&&(o=str(r,p),o&&u.push(quote(r)+(gap?": ":":")+o));return o=0===u.length?"{}":gap?"{\n"+gap+
-                    u.join(",\n"+gap)+"\n"+i+"}":"{"+u.join(",")+"}",gap=i,o}}"function"!=typeof Date.prototype.toJSON&&(Date.prototype.toJSON=function(){
-        return isFinite(this.valueOf())?this.getUTCFullYear()+"-"+f(this.getUTCMonth()+1)+"-"+f(this.getUTCDate())+"T"+f(this.getUTCHours())+":"+
-            f(this.getUTCMinutes())+":"+f(this.getUTCSeconds())+"Z":null},String.prototype.toJSON=Number.prototype.toJSON=Boolean.prototype.toJSON=function(){
-        return this.valueOf()});var cx,escapable,gap,indent,meta,rep;"function"!=typeof JSON.stringify&&
-    (escapable=/[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
-        meta={"\b":"\\b","  ":"\\t","\n":"\\n","\f":"\\f","\r":"\\r",'"':'\\"',"\\":"\\\\"},JSON.stringify=function(t,e,n){var r;
-        if(gap="",indent="","number"==typeof n)for(r=0;n>r;r+=1)indent+=" ";else"string"==typeof n&&(indent=n);if(rep=e,
-            e&&"function"!=typeof e&&("object"!=typeof e||"number"!=typeof e.length))throw new Error("JSON.stringify");return str("",{"":t})}),
-    "function"!=typeof JSON.parse&&(cx=/[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
-        JSON.parse=function(text,reviver){function walk(t,e){var n,r,o=t[e];if(o&&"object"==typeof o)for(n in o)Object.prototype.hasOwnProperty.call(o,n)&&
-        (r=walk(o,n),void 0!==r?o[n]=r:delete o[n]);return reviver.call(t,e,o)}var j;if(text=String(text),cx.lastIndex=0,cx.test(text)&&
-            (text=text.replace(cx,function(t){return"\\u"+("0000"+t.charCodeAt(0).toString(16)).slice(-4)})),
-                /^[\],:{}\s]*$/.test(text.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g,"@")
-                    .replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g,"]")
-                    .replace(/(?:^|:|,)(?:\s*\[)+/g,"")))return j=eval("("+text+")"),"function"==typeof reviver?walk({"":j},""):j;
-            throw new SyntaxError("JSON.parse")})}();
-/*-------------------------------------------------------------------------------------------------------------------------*/
+#include "JSON.jsx";
+#include "utils.jsx";
 
 /**
  * Get a value from an object or array.
@@ -196,17 +134,17 @@ function get( subject, key, _default ) {
 function getScreenSize() {
 
     try {
-        if (view = app.activeDocument.views[0] ) {
-            view.zoom = 1;
-            return {
-                left   : parseInt(view.bounds[0]),
-                top    : parseInt(view.bounds[1]),
-                right  : parseInt(view.bounds[2]),
-                bottom : parseInt(view.bounds[3]),
-                width  : parseInt(view.bounds[2]) - parseInt(view.bounds[0]),
-                height : parseInt(view.bounds[1]) - parseInt(view.bounds[3])
-            };
-        }
+		if (view = app.activeDocument.views[0] ) {
+			view.zoom = 1;
+			return {
+				left   : parseInt(view.bounds[0]),
+				top    : parseInt(view.bounds[1]),
+				right  : parseInt(view.bounds[2]),
+				bottom : parseInt(view.bounds[3]),
+				width  : parseInt(view.bounds[2]) - parseInt(view.bounds[0]),
+				height : parseInt(view.bounds[1]) - parseInt(view.bounds[3])
+			};
+		}
     }
     catch(ex){/*Exit Gracefully*/}
     return null;
@@ -339,8 +277,9 @@ function doDisplayDialog() {
                     CONFIG.PATH_SEPATATOR = "\\"
                 }
 
-                dialog.srcFolder.text = srcFolder.path + CONFIG.PATH_SEPATATOR + srcFolder.name;
-                CONFIG.SRC_FOLDER = dialog.srcFolder.text;
+                var srcFolderPath = srcFolder.path + CONFIG.PATH_SEPATATOR + srcFolder.name + CONFIG.PATH_SEPATATOR;
+                dialog.srcFolder.text = srcFolderPath;
+                CONFIG.SRC_FOLDER = srcFolderPath;
                 if ( trim(dialog.filename.text) == '' ) {
                     dialog.filename.text = srcFolder.name + '-merged.ai';
                     CONFIG.OUTPUT_FILENAME = dialog.filename.text;
@@ -357,6 +296,7 @@ function doDisplayDialog() {
             CONFIG.SPACING             = parseInt(dialog.artboardSpacing.text);
             CONFIG.SCALE               = parseInt(dialog.scale.text);
             CONFIG.OUTPUT_FILENAME     = dialog.filename.text;
+            CONFIG.META_FILE           = CONFIG.SRC_FOLDER + CONFIG.META_FILE_NAME;
 
             dialog.close();
 
@@ -375,6 +315,98 @@ function doDisplayDialog() {
 }
 
 /**
+ * Display a new progress bar.
+ * @param maxvalue
+ * @returns {*}
+ */
+function showProgressBar(maxvalue) {
+
+    var top, right, bottom, left;
+
+    if ( bounds = getScreenSize() ) {
+        left = Math.abs(Math.ceil((bounds.width/2) - (450/2)));
+        top = Math.abs(Math.ceil((bounds.height/2) - (100/2)));
+    }
+
+    var progress = new Window("palette", LANG.PROGRESS, [left, top, left + 450, top + 100]);
+    progress.pnl = progress.add("panel", [10, 10, 440, 100], LANG.SCRIPT_PROGRESS);
+    progress.pnl.progBar = progress.pnl.add("progressbar", [20, 35, 410, 60], 0, maxvalue);
+    progress.pnl.progBarLabel = progress.pnl.add("statictext", [20, 20, 320, 35], "0 of " + maxvalue);
+
+    progress.show();
+
+    return progress;
+}
+
+/**
+ * Updates the progress bar.
+ * @param progress
+ * @returns {*}
+ */
+function updateProgress(progress) {
+    progress.pnl.progBar.value++;
+    var val = progress.pnl.progBar.value;
+    var max = progress.pnl.progBar.maxvalue;
+    progress.pnl.progBarLabel.text = val + ' of ' + max;
+    $.sleep(10);
+    progress.update();
+    return progress;
+}
+
+/**
+ * Convert IconJar tags to filename
+ * @param {string} tags  Comma-separated list of tags.
+ * @returns {string}
+ */
+function tagsToNameSlug(tags) {
+    tags = tags.toLowerCase();
+    return tags.split(',').join('-').replace(' ','-');
+}
+
+/**
+ * Loads META.json
+ */
+function doLoadMetaData(filepath) {
+
+    var read_file = new File(filepath);
+
+    if (read_file) {
+        try {
+
+            if (read_file.alias) {
+                while (read_file.alias) {
+                    read_file = read_file.resolve().openDlg(
+                        LANG.CHOOSE_FILE,
+                        json_filter,
+                        false
+                    );
+                }
+            }
+
+            read_file.open('r', undefined, undefined);
+            if (read_file !== '') {
+                var meta = JSON.parse(read_file.read());
+                read_file.close();
+
+                var items = [];
+                if (typeof(meta.items) == "object") {
+                    for (key in meta.items) {
+                        items.push(meta.items[key]);
+                    }
+                }
+                meta.items = items;
+
+                return meta;
+            }
+        }
+        catch(ex) {
+            try { read_file.close(); }catch(ex){};
+            logger("ERROR: " + ex.message);
+        }
+    }
+}
+
+/**
  * Cleans up the filename/artboardname.
  * @param {String}    name    The name to filter and reformat.
  * @return {String}           The cleaned up name.
@@ -390,9 +422,9 @@ function filterName(name) {
  * @param b
  * @returns {number}
  */
-function comparator(a, b) {
-    var nameA = filterName(a.name.toUpperCase());
-    var nameB = filterName(b.name.toUpperCase());
+function sortMethod(a, b) {
+    var nameA = tagsToNameSlug(a.tags);
+    var nameB = tagsToNameSlug(b.tags);
     if (nameA < nameB) {
         return -1;
     }
@@ -403,31 +435,46 @@ function comparator(a, b) {
     return 0;
 }
 
-function showProgressBar(maxvalue) {
+/**
+ * Get the set name from the meta object.
+ * @param {object} meta
+ * @returns {string}
+ */
+function getSetName(meta) {
+    var setName = CONFIG.OUTPUT_FILENAME;
 
-    var top, right, bottom, left;
-
-    if ( bounds = getScreenSize() ) {
-        left = Math.abs(Math.ceil((bounds.width/2) - (450/2)));
-        top = Math.abs(Math.ceil((bounds.height/2) - (100/2)));
+    for (key in meta.sets) {
+        setName = (meta.sets[key].name).toLowerCase().replace(' ', '-');
+        break;
     }
 
-    var progress = new Window("palette", LANG.PROGRESS, [left, top, left + 450, top + 100]);
-    progress.pnl = progress.add("panel", [10, 10, 440, 100], "Script Progress");
-    progress.pnl.progBar = progress.pnl.add("progressbar", [20, 35, 410, 60], 0, maxvalue);
-    progress.pnl.progBarLabel = progress.pnl.add("statictext", [20, 20, 320, 35], "0%");
-
-    progress.show();
-
-    return progress;
+    return setName;
 }
 
-function updateProgress(progress, maxvalue) {
-    progress.pnl.progBar.value++;
-    progress.pnl.progBarLabel.text = progress.pnl.progBar.value + " of " + maxvalue;
-    $.sleep(10);
-    progress.update();
-    return progress;
+/**
+ * Convert file name to tags.
+ * @param {string} fileName The file name to convert to tags.
+ * @returns {string}
+ */
+function filenameToTags(fileName) {
+    var tags = fileName.toLowerCase().replace('.svg', '').replace(' ', '-').split('-').join(',');
+    logger("TAGS: " + tags);
+    return tags;
+}
+
+/**
+ * Ensure all items have tags.
+ * @param {object} meta The meta object.
+ * @return {object} the updated meta object
+ */
+function ensureTags(meta) {
+    for (i=0; i<meta.items.length; i++) {
+        var item = meta.items[i];
+        if (trim(item.tags) == '') {
+            meta.items[i].tags = filenameToTags(item.file);
+        }
+    }
+    return meta;
 }
 
 /**
@@ -445,21 +492,18 @@ function filesToArtboards() {
 
     if ( srcFolder == null ) return;
 
-    /**
-     * Gets only the SVG files…
-     */
-    fileList = getFilesInSubfolders(srcFolder);
+    meta = ensureTags(doLoadMetaData(CONFIG.META_FILE));
 
-    logger("File count: " + fileList.length + "\n" + fileList);
+    CONFIG.OUTPUT_FILENAME = getSetName(meta) + '.ai';
 
     /**
      * Make sure it has AI files in it…
      */
-    if (fileList.length > 0) {
+    if (meta.items.length > 0) {
 
         if (CONFIG.SORT_ARTBOARDS == true) {
             try {
-                fileList.sort(comparator);
+                meta.items.sort(sortMethod);
             }
             catch(ex) {
                 logger(LANG.SORT_FILELIST_FAILED);
@@ -478,10 +522,10 @@ function filesToArtboards() {
             DocumentColorSpace.RGB,
             CONFIG.ARTBOARD_WIDTH,
             CONFIG.ARTBOARD_HEIGHT,
-            CONFIG.ARTBOARD_COUNT = fileList.length,
+            CONFIG.ARTBOARD_COUNT = meta.items.length,
             DocumentArtboardLayout.GridByCol,
             CONFIG.ARTBOARD_SPACING,
-            CONFIG.ARTBOARD_ROWSxCOLS = Math.round(Math.sqrt(fileList.length))
+            CONFIG.ARTBOARD_ROWSxCOLS = Math.round(Math.sqrt(meta.items.length))
         );
 
         var progress = showProgressBar(CONFIG.ARTBOARD_COUNT);
@@ -496,19 +540,10 @@ function filesToArtboards() {
              */
             doc.artboards.setActiveArtboardIndex(i);
 
-            var bits = srcFolder.name.split('-');
-            var base = trim(bits.slice(1, bits.length).join('-'));
-            var boardName = fileList[i].name.replace(".svg", "");
+            var boardName = tagsToNameSlug(meta.items[i].tags);
 
-            if (base != '') {
-                boardName = base + ' ' + boardName;
-            }
-
-            boardName = filterName(boardName);
-
-            bits = boardName.split("--");
-            if (bits.length > 1 && ! isNaN(bits[0])) {
-                boardName = trim(bits[1]);
+            if (trim(boardName) == '') {
+                boardName = tagsToNameSlug(meta.items[i].file.replace('.svg', ''));
             }
 
             doc.artboards[i].name = boardName;
@@ -517,12 +552,13 @@ function filesToArtboards() {
              * Create group from SVG
              */
             try {
-                var f = new File(fileList[i]);
-                if (f.exists) {
-                    svgFile = doc.groupItems.createFromFile(f);
-                }
+                var f = new File(CONFIG.SRC_FOLDER + CONFIG.ICONS_FOLDER + meta.items[i].file);
+                logger("FILE [" + i + "]: " + f);
+            	if (f.exists) {
+            	    svgFile = doc.groupItems.createFromFile(f);
+            	}
 
-                updateProgress(progress, CONFIG.ARTBOARD_COUNT);
+                updateProgress(progress);
 
                 /**
                  * Move relative to this artboards rulers
@@ -547,10 +583,11 @@ function filesToArtboards() {
             }
             catch(ex) {
                 logger(
-                    "Error in `doc.groupItems.createFromFile` with file `" 
-                    + fileList[i] + " `. Error: " + ex
+                	"Error in `doc.groupItems.createFromFile` with file `" 
+                	+ meta.items[i] + " `. Error: " + ex
                 );
             }
+
         };
 
         progress.close();
@@ -564,39 +601,6 @@ function filesToArtboards() {
     catch(ex) {/*Exit Gracefully*/}
 
 };
-
-/**
- * Get all files in subfolders.
- * @param srcFolder     The root folder from which to merge SVGs.
- * @returns {Array}     Array of nested files.
- */
-function getFilesInSubfolders( srcFolder ) {
-
-    if ( ! srcFolder instanceof Folder) return;
-
-    var allFiles    = srcFolder.getFiles();
-    var theFolders  = [];
-    var svgFileList = [];
-
-    for (var x=0; x < allFiles.length; x++) {
-        if (allFiles[x] instanceof Folder) {
-            theFolders.push(allFiles[x]);
-        }
-    }
-
-    if (theFolders.length == 0) {
-        svgFileList = srcFolder.getFiles(/\.svg$/i);
-    }
-    else {
-        for (var x=0; x < theFolders.length; x++) {
-            fileList = theFolders[x].getFiles(/\.svg$/i);
-            for (var n = 0; n<fileList.length; n++) {
-                svgFileList.push(fileList[n]);
-            }
-        }
-    }
-    return svgFileList;
-}
 
 /**
  * Saves a file in Ai format.

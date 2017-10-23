@@ -40,7 +40,7 @@ if(!doc || !app.documents.length){
 	try{
 		var toolBuilder = new smartExport.ExportToolBuilder(app.activeDocument, "Smart Layer Export");
 		var loadSuccess = toolBuilder.loadPrefLayer("Export Settings", "nyt_exporter_info");
-		if (loadSuccess) toolBuilder.showDialog(true, true, false);
+		if (loadSuccess) toolBuilder.showDialog(true, true, true, true);
 		
 	}catch(e){
 		alert("Error opening panel:\n"+e);

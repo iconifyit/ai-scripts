@@ -32,8 +32,8 @@ userInteractionLevel = UserInteractionLevel.DONTDISPLAYALERTS;
  */
 
 var CONST = {
-    SRCFOLDER:      "/Users/scott/Dropbox (Personal)/ai-sessions",
-    LOGFOLDER:      "~/ai-sessions",
+    SRCFOLDER:      "~/Documents/ai-sessions",
+    LOGFOLDER:      "~/Documents/ai-sessions-logs",
     NO_OPEN_DOCS:   "There are no open docs to save for this session",
     NO_DOC_SELECTED: "You have not selected a session to open",
     SESSION_SAVED:  "Your Session Was Saved!",
@@ -93,20 +93,20 @@ dialog.saveBtn.onClick = function(){
                 logfolder.create();
             }
         
-            var testFile = new File(CONST.LOGFOLDER + "/" + session_filename);
+            var testFile = new File(CONST.SRCFOLDER + "/" + session_filename);
         
             var n = 1;
             var max = 100;
             while (testFile.exists && n < max) {
                 session_filename = "ai-" + dateString + "-r" + n + CONST.JSON_EXT;
-                testFile = new File(CONST.LOGFOLDER + "/" + session_filename);
+                testFile = new File(CONST.SRCFOLDER + "/" + session_filename);
                 n++;
             }
         
             session_logfile  = "ai-log-"  + dateString  + "-r" + n + CONST.TEXT_EXT
         
             logger(
-                session_filename,
+                CONST.SRCFOLDER + "/" + session_filename,
                 "{files:[\r" + "    " + openDocs.join(",\r    ") + "\r]}"
             );
             
@@ -116,7 +116,7 @@ dialog.saveBtn.onClick = function(){
         }
         catch(ex) {
     
-            logger(session_logfile, "ERROR: " + ex.message);
+            logger(CONST.LOGFOLDER + "/" + session_logfile, "ERROR: " + ex.message);
         }
         userInteractionLevel = originalInteractionLevel;
     }
@@ -228,9 +228,9 @@ function doOpenSession(filepath) {
  * @param string txt         The text to write to the file
  * @return void
  */
-function logger(filename, txt) {  
+function logger(filepath, txt) {  
 
-    var file = new File(CONST.LOGFOLDER + "/" + filename);  
+    var file = new File(filepath);  
     file.open("e", "TEXT", "????");  
     file.seek(0,2);  
     $.os.search(/windows/i)  != -1 ? file.lineFeed = 'windows'  : file.lineFeed = 'macintosh';

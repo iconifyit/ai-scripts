@@ -310,3 +310,65 @@ Utils.objectToString = function(obj) {
     }
     return "{" + items.join(',') + "}";
 };
+
+/**
+ * Align objects to nearest pixel.
+ * @param sel
+ */
+Utils.alignToNearestPixel = function(sel) {
+
+    try {
+        if (typeof sel != "object") {
+            Utils.logger(LANG.NO_SELECTION);
+        }
+        else {
+            for (i = 0 ; i < sel.length; i++) {
+                sel[i].left = Math.round(sel[i].left);
+                sel[i].top = Math.round(sel[i].top);
+            }
+            redraw();
+        }
+    }
+    catch(ex) {
+        Utils.logger(ex);
+    }
+};
+
+/**
+ * Display a new progress bar.
+ * @param maxvalue
+ * @returns {*}
+ */
+function showProgressBar(maxvalue) {
+
+    var top, right, bottom, left;
+
+    if ( bounds = Utils.getScreenSize() ) {
+        left = Math.abs(Math.ceil((bounds.width/2) - (450/2)));
+        top = Math.abs(Math.ceil((bounds.height/2) - (100/2)));
+    }
+
+    var progress = new Window("palette", 'Progress', [left, top, left + 450, top + 100]);
+    progress.pnl = progress.add("panel", [10, 10, 440, 100], 'Progress');
+    progress.pnl.progBar = progress.pnl.add("progressbar", [20, 35, 410, 60], 0, maxvalue);
+    progress.pnl.progBarLabel = progress.pnl.add("statictext", [20, 20, 320, 35], "0 of " + maxvalue);
+
+    progress.show();
+
+    return progress;
+}
+
+/**
+ * Updates the progress bar.
+ * @param progress
+ * @returns {*}
+ */
+function updateProgress(progress) {
+    progress.pnl.progBar.value++;
+    var val = progress.pnl.progBar.value;
+    var max = progress.pnl.progBar.maxvalue;
+    progress.pnl.progBarLabel.text = val + ' of ' + max;
+    $.sleep(10);
+    progress.update();
+    return progress;
+}
