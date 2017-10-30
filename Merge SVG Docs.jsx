@@ -44,6 +44,11 @@ var originalInteractionLevel = userInteractionLevel;
 userInteractionLevel = UserInteractionLevel.DONTDISPLAYALERTS;
 
 /**
+ * Determine the HOME location for setting up the default configuration.
+ */
+var HOME_FOLDER = (new Folder($.getenv("HOME"))).absoluteURI;
+
+/**
  * Default configuration. Many of these values are over-written by the dialog.
  * @type {{
  *     ARTBOARD_COUNT: number,
@@ -65,15 +70,16 @@ var CONFIG = {
     ARTBOARD_HEIGHT     : 24,
     ARTBOARD_SPACING    : 24,
     ARTBOARD_ROWSxCOLS  : 10,
-    LOG_FILE_PATH       : "~/Downloads/ai-script-log.txt",
-    CONFIG_FILE_PATH    : "~/Downloads/ai-script-conf.json",
+    LOG_FILE_PATH       : HOME_FOLDER + "/ai-script-log.txt",
+    CONFIG_FILE_PATH    : HOME_FOLDER + "/ai-script-conf.json",
     LOGGING             : true,
     OUTPUT_FILENAME     : "merged-files.ai",
     SCALE               : 100,
-    ROOT                : "~/Documents",
+    ROOT                : HOME_FOLDER,
     SRC_FOLDER          : "",
     PATH_SEPATATOR      : "/",
-    SORT_ARTBOARDS      : true
+    SORT_ARTBOARDS      : true,
+    SYSTEM              : $.os.toLowerCase().indexOf("macintosh") != -1 ? "MAC" : "WINDOWS"
 }
 
 /**
@@ -104,7 +110,6 @@ var LANG = {
     LABEL_SORT_ARTBOARDS   : 'Sort Artboards?',
     PROGRESS               : 'Progress'
 }
-
 
 /**
  * Add Array.indexOf support if not supported natively.
@@ -422,9 +427,12 @@ function showProgressBar(maxvalue) {
     return progress;
 }
 
-function updateProgress(progress, maxvalue) {
+function updateProgress(progress, maxvalue, filename) {
+
+    var message = "Importing file " + progress.pnl.progBar.value ;
+    message += " of " + maxvalue + ": `" + filename + "`";
+    progress.pnl.progBarLabel.text = message;
     progress.pnl.progBar.value++;
-    progress.pnl.progBarLabel.text = progress.pnl.progBar.value + " of " + maxvalue;
     $.sleep(10);
     progress.update();
     return progress;
@@ -497,11 +505,14 @@ function filesToArtboards() {
             doc.artboards.setActiveArtboardIndex(i);
 
             var bits = srcFolder.name.split('-');
-            var base = trim(bits.slice(1, bits.length).join('-'));
             var boardName = fileList[i].name.replace(".svg", "");
 
-            if (base != '') {
-                boardName = base + ' ' + boardName;
+            /**
+             * If the file is in a subfolder, prepend the
+             * subfolder name to the board name.
+             */
+            if (Folder(fileList[i].path).absoluteURI != Folder(srcFolder).absoluteURI) {
+                boardName = Folder(fileList[i].path).name + '-' + boardName;
             }
 
             boardName = filterName(boardName);
@@ -522,7 +533,7 @@ function filesToArtboards() {
                     svgFile = doc.groupItems.createFromFile(f);
                 }
 
-                updateProgress(progress, CONFIG.ARTBOARD_COUNT);
+                updateProgress(progress, CONFIG.ARTBOARD_COUNT, boardName + ".svg");
 
                 /**
                  * Move relative to this artboards rulers
@@ -547,7 +558,7 @@ function filesToArtboards() {
             }
             catch(ex) {
                 logger(
-                    "Error in `doc.groupItems.createFromFile` with file `" 
+                    "Error in `doc.groupItems.createFromFile` with file `"
                     + fileList[i] + " `. Error: " + ex
                 );
             }
@@ -703,4 +714,4 @@ function read_file(fp) {
 /**
  * Execute the script.
  */
-filesToArtboards(); 
+filesToArtboards();
