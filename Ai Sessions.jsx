@@ -193,18 +193,16 @@ function doOpenSession(filepath) {
         }
 
         try {
-    
             read_file.open('r', undefined, undefined);
             if (read_file !== '') {
-                var _json = read_file.read();
-                var obj = eval(_json);
+                var obj = eval(read_file.read());
                 if (typeof(obj) == "object") {
-            
                     if (obj.length) {
                         for(i=0; i<obj.length; i++) {
-                
-                            //alert(obj[i]);
-                            doc = app.open(new File(obj[i]));
+                            var the_file = new File(obj[i]);
+                            if (the_file.exists) {
+                                doc = app.open(the_file);
+                            }
                         }
                     }
                 }
@@ -212,7 +210,6 @@ function doOpenSession(filepath) {
             }
         }
         catch(ex) {
-
             try { read_file.close(); }catch(ex){};
             dialog.msgBox.text = ex.message;
             logger(session_logfile, "ERROR: " + ex.message);

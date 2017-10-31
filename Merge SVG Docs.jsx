@@ -79,7 +79,7 @@ var CONFIG = {
     SRC_FOLDER          : "",
     PATH_SEPATATOR      : "/",
     SORT_ARTBOARDS      : true,
-    SYSTEM              : $.os.toLowerCase().indexOf("macintosh") != -1 ? "MAC" : "WINDOWS"
+    SYSTEM              : $.os.search(/windows/i) != -1 ? "WINDOWS" : "MAC"
 }
 
 /**
@@ -576,6 +576,37 @@ function filesToArtboards() {
 
 };
 
+function centerObjects() {
+    doc = app.activeDocument;
+
+    var doc  = app.activeDocument;
+    var progress = showProgressBar(doc.artboards.length);
+
+    for (i=0; i<doc.artboards.length; i++) {
+
+        doc.artboards.setActiveArtboardIndex(i);
+
+        var activeAB = doc.artboards[doc.artboards.getActiveArtboardIndex()];
+        var right = activeAB.artboardRect[2];
+        var bottom = activeAB.artboardRect[3];
+
+        doc.selectObjectsOnActiveArtboard();
+
+        for (x = 0 ; x < selection.length; x++) {
+            try {
+                selection[x].position = [
+                    Math.round((right - selection[x].width)/2),
+                    Math.round((bottom + selection[x].height)/2)
+                ];
+            }
+            catch(e) {
+                Utils.logger('ERROR - ' + e.message);
+            }
+        }
+        redraw();
+    }
+}
+
 /**
  * Get all files in subfolders.
  * @param srcFolder     The root folder from which to merge SVGs.
@@ -681,7 +712,10 @@ function write_file( path, txt, replace ) {
         }
         file.open("e", "TEXT", "????");
         file.seek(0,2);
-        $.os.search(/windows/i)  != -1 ? file.lineFeed = 'windows'  : file.lineFeed = 'macintosh';
+        file.lineFeed = 'macintosh';
+        if (CONFIG.SYSTEM == 'WINDOWS') {
+            file.lineFeed = 'windows';
+        }
         file.writeln(txt);
         file.close();
     }
