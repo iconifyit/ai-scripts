@@ -26,6 +26,11 @@
 var Utils = {};
 
 /**
+ * Add global progress bar.
+ */
+Utils.progress = {};
+
+/**
  * Get a value from an object or array.
  * @param subject
  * @param key
@@ -48,8 +53,9 @@ Utils.get = function( subject, key, _default ) {
 Utils.getScreenSize = function() {
 
     if (view = app.activeDocument.views[0] ) {
+        var zoom = view.zoom;
         view.zoom = 1;
-        return {
+        var screenSize = {
             left   : parseInt(view.bounds[0]),
             top    : parseInt(view.bounds[1]),
             right  : parseInt(view.bounds[2]),
@@ -57,6 +63,8 @@ Utils.getScreenSize = function() {
             width  : parseInt(view.bounds[2]) - parseInt(view.bounds[0]),
             height : parseInt(view.bounds[1]) - parseInt(view.bounds[3])
         };
+        view.zoom = zoom;
+        return screenSize;
     }
     return null;
 };
@@ -119,10 +127,44 @@ Utils.write_file = function( path, txt, replace ) {
         $.os.search(/windows/i)  != -1 ? file.lineFeed = 'windows'  : file.lineFeed = 'macintosh';
         file.writeln(txt);
         file.close();
+        return true;
     }
     catch(ex) {
-        try { file.close(); }
+        try {
+            file.close();
+        }
         catch(ex) {/* Exit Gracefully*/}
+        throw ex;
+    }
+};
+
+/**
+ * Logging for this script.
+ * @param {string}  path        The file path
+ * @param {string}  txt         The text to write
+ * @param {bool}    replace     Replace the file
+ * @return void
+ */
+Utils.write_and_call = function( path, txt, callback ) {
+    try {
+        var file = new File( path );
+        if (file.exists) {
+            file.remove();
+            file = new File( path );
+        }
+        file.open("e", "TEXT", "????");
+        file.seek(0,2);
+        $.os.search(/windows/i)  != -1 ? file.lineFeed = 'windows'  : file.lineFeed = 'macintosh';
+        file.writeln(txt);
+        file.close();
+        callback.call(file);
+    }
+    catch(ex) {
+        try {
+            file.close();
+        }
+        catch(ex) {/* Exit Gracefully*/}
+        throw ex;
     }
 };
 
@@ -335,6 +377,110 @@ Utils.alignToNearestPixel = function(sel) {
 };
 
 /**
+ * Test if all parents are visible & unlocked.
+ * @param {object} item
+ * @returns {boolean}
+ */
+Utils.isVisibleAndUnlocked = function(item) {
+    return ! Utils.anyParentLocked(item) && ! Utils.anyParentHidden(item);
+};
+
+/**
+ * Derived from P. J. Onori's Iconic SVG Exporter.jsx
+ * @param {object} item
+ * @returns {boolean}
+ */
+Utils.anyParentLocked = function(item) {
+    while ( item.parent ) {
+        if ( item.parent.locked ) {
+            return true;
+        }
+        item = item.parent;
+    }
+    return false;
+}
+
+/**
+ * Derived from P. J. Onori's Iconic SVG Exporter.jsx
+ * @param {object} item
+ * @returns {boolean}
+ */
+Utils.anyParentHidden = function(item) {
+    while ( item.parent ) {
+        if ( item.parent.hidden ) {
+            return true;
+        }
+        item = item.parent;
+    }
+    return false;
+};
+
+/**
+ * Groups selected items.
+ * @param {Object} selection
+ * @returns void
+ */
+//TODO: Does not currently work.
+Utils.groupSelection = function(selection){
+    if (selection.length > 0) {
+        for (i = 0; i < selection.length; i++) {
+            selection[i].moveToEnd(newGroup);
+        }
+    }
+};
+
+/**
+ * Display a new progress bar.
+ * @param maxvalue
+ * @returns {*}
+ */
+Utils.showProgressBar = function(maxvalue) {
+
+    var top, right, bottom, left;
+
+    if ( bounds = Utils.getScreenSize() ) {
+        left = Math.abs(Math.ceil((bounds.width/2) - (450/2)));
+        top = Math.abs(Math.ceil((bounds.height/2) - (100/2)));
+    }
+
+    var progress = new Window("palette", 'Progress', [left, top, left + 450, top + 120]);
+    progress.pnl = progress.add("panel", [10, 10, 440, 100], 'Progress');
+    progress.pnl.progBar = progress.pnl.add("progressbar", [20, 45, 410, 60], 0, maxvalue);
+    progress.pnl.progBarLabel = progress.pnl.add("statictext", [20, 20, 320, 35], "0 of " + maxvalue);
+
+    progress.show();
+
+    Utils.progress = progress;
+};
+
+/**
+ * Updates the progress bar.
+ * @param progress
+ * @returns {*}
+ */
+Utils.updateProgress = function(message) {
+    Utils.progress.pnl.progBar.value++;
+    var val = Utils.progress.pnl.progBar.value;
+    var max = Utils.progress.pnl.progBar.maxvalue;
+    Utils.progress.pnl.progBarLabel.text = val + ' of ' + max + ' - ' + message;
+    $.sleep(10);
+    Utils.progress.update();
+};
+
+/**
+ * Updates the progress bar.
+ * @param progress
+ * @returns {*}
+ */
+Utils.updateProgressMessage = function(message) {
+    var val = Utils.progress.pnl.progBar.value;
+    var max = Utils.progress.pnl.progBar.maxvalue;
+    Utils.progress.pnl.progBarLabel.text = val + ' of ' + max + ' - ' + message;
+    $.sleep(10);
+    Utils.progress.update();
+};
+
+/**
  * Display a new progress bar.
  * @param maxvalue
  * @returns {*}
@@ -363,7 +509,7 @@ function showProgressBar(maxvalue) {
  * @param progress
  * @returns {*}
  */
-function updateProgress(progress) {
+function updateProgress(progress, message) {
     progress.pnl.progBar.value++;
     var val = progress.pnl.progBar.value;
     var max = progress.pnl.progBar.maxvalue;
