@@ -43,13 +43,13 @@ var CONFIG = {
      * Top & bottom page margins
      */
 
-    VOFF: 64,
+    VOFF: 0,
 
     /**
      * Left & Right page margins
      */
 
-    HOFF: 64,
+    HOFF: 0,
 
     /**
      * Row height. This is set programmatically.
@@ -105,7 +105,7 @@ var CONFIG = {
      * @deprecated
      */
 
-    GUTTER: 0,
+    GUTTER: 2,
 
     /**
      * Enter scale in percentage 1-100

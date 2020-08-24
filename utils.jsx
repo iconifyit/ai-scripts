@@ -37,13 +37,31 @@ Utils.progress = {};
  * @param _default
  * @returns {*}
  */
-Utils.get = function( subject, key, _default ) {
-    var value = _default;
-    if (typeof(subject[key]) != 'undefined') {
+Utils.get = function( subject, key, dfault ) {
+    var value = dfault;
+    if (typeof subject == 'object' && subject.hasOwnProperty(key)) {
         value = subject[key];
     }
     return value;
 };
+
+
+/**
+ * Turn off displaying alerts.
+ */
+Utils.displayAlertsOff = function() {
+    userInteractionLevel = UserInteractionLevel.DONTDISPLAYALERTS;
+};
+
+/**
+ * Turn on displaying alerts.
+ */
+Utils.displayAlertsOn = function() {
+    try {
+        userInteractionLevel = UserInteractionLevel.DISPLAYALERTS;
+    }
+    catch(e) {/* Exit Gracefully */}
+}
 
 /**
  * Gets the screen dimensions and bounds.
@@ -52,21 +70,109 @@ Utils.get = function( subject, key, _default ) {
  */
 Utils.getScreenSize = function() {
 
-    if (view = app.activeDocument.views[0] ) {
-        var zoom = view.zoom;
-        view.zoom = 1;
-        var screenSize = {
-            left   : parseInt(view.bounds[0]),
-            top    : parseInt(view.bounds[1]),
-            right  : parseInt(view.bounds[2]),
-            bottom : parseInt(view.bounds[3]),
-            width  : parseInt(view.bounds[2]) - parseInt(view.bounds[0]),
-            height : parseInt(view.bounds[1]) - parseInt(view.bounds[3])
-        };
-        view.zoom = zoom;
-        return screenSize;
+    try {
+        if (view = app.activeDocument.views[0] ) {
+            var zoom = view.zoom;
+            view.zoom = 1;
+            var screenSize = {
+                left   : parseInt(view.bounds[0]),
+                top    : parseInt(view.bounds[1]),
+                right  : parseInt(view.bounds[2]),
+                bottom : parseInt(view.bounds[3]),
+                width  : parseInt(view.bounds[2]) - parseInt(view.bounds[0]),
+                height : parseInt(view.bounds[1]) - parseInt(view.bounds[3])
+            };
+            view.zoom = zoom;
+            return screenSize;
+        }
     }
+    catch(e) {/* Exit Gracefully */}
     return null;
+};
+
+/**
+ * Returns a random integer between min (inclusive) and max (inclusive).
+ * The value is no lower than min (or the next integer greater than min
+ * if min isn't an integer) and no greater than max (or the next integer
+ * lower than max if max isn't an integer).
+ * Using Math.round() will give you a non-uniform distribution!
+ */
+Utils.getRandomInt = function(min, max, omit) {
+
+    var x, num;
+
+    if (typeof(omit) == 'number')    omit = [omit];
+    if (typeof(omit) == 'undefined') omit = [];
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    num = Math.floor(Math.random() * (max - min + 1)) + min;
+    x = 0;
+    while (omit.indexOf(num) != -1 && x <= 9999) {
+        x++;
+        num = Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+    return num;
+};
+
+/**
+ * Fisher-Yates shuffle an array.
+ * @link https://www.frankmitchell.org/2015/01/fisher-yates/
+ * @param array
+ */
+Utils.shuffleArray_1 = function(_array) {
+    var i = 0,
+        j = 0,
+        temp = null;
+
+    for (i = _array.length - 1; i > 0; i--) {
+        j = Math.floor(Math.random() * (i + 1))
+        temp = _array[i]
+        _array[i] = _array[j]
+        _array[j] = temp
+    }
+
+    return _array;
+};
+
+Utils.shuffleArray_2 = function(array) {
+
+    var currentIndex = array.length;
+    var temporaryValue,
+        randomIndex,
+        randomValue,
+        currentValue;
+
+    // While there remain elements to shuffle...
+    while (0 !== currentIndex) {
+        // Pick a remaining element...
+        randomIndex  = Math.floor(Math.random() * currentIndex);
+        currentIndex = currentIndex - 1;
+
+        // And swap it with the current element.
+        temporaryValue      = array[currentIndex];
+        randomValue         = array[randomIndex];
+        currentValue        = array[currentIndex];
+
+        array[currentIndex] = randomValue;
+        array[randomIndex]  = temporaryValue;
+    }
+
+    return array;
+
+};
+
+Utils.knuthShuffle = function(arr) {
+    var rand, temp, i;
+
+    var len = arr.length - 1;
+
+    for (i = len; i > 0; i--) {
+        rand = Math.floor((i + 1) * Math.random());//get random between zero and i (inclusive)
+        temp = arr[rand]; //swap i and the zero-indexed number
+        arr[rand] = arr[i];
+        arr[i] = temp;
+    }
+    return arr;
 };
 
 /**
@@ -97,6 +203,83 @@ Utils.trim = function(str) {
 };
 
 /**
+ * Cleans up the filename/artboardname.
+ * @param   {String}    name    The name to filter and reformat.
+ * @returns  {String}            The cleaned up name.
+ */
+Utils.filterName = function(name) {
+    return decodeURIComponent(name).replace(' ', '-');
+};
+
+/**
+ * Sorts a file list.
+ * @param theList
+ * @returns {*}
+ */
+Utils.sortFileList = function(theList) {
+    /**
+     * Callback for sorting the file list.
+     * @param   {File}  a
+     * @param   {File}  b
+     * @returns {number}
+     */
+    theList.sort(function (a, b) {
+        var nameA = Utils.filterName(a.name.toUpperCase());
+        var nameB = Utils.filterName(b.name.toUpperCase());
+        if (nameA < nameB) {
+            return -1;
+        }
+        if (nameA > nameB) {
+            return 1;
+        }
+        // names must be equal
+        return 0;
+    });
+    return theList;
+};
+
+/**
+ * Sort first by set then my file.
+ * @param fileList
+ * @returns {*[]}
+ */
+Utils.sortBySetAndName = function(fileList) {
+
+    var sets   = {},
+        keys   = [],
+        sorted = [];
+
+    try {
+
+        for (var i = 0; i < fileList.length; i++) {
+            var file = fileList[i];
+            if (keys.indexOf(file.parent.name) == -1) {
+                keys.push(file.parent.name);
+                logger('Adding key ' + file.parent.name);
+            }
+        }
+
+        keys.sort();
+
+        for (var i = 0; i < keys.length; i++) {
+            sets[keys[i]] = [];
+        }
+
+        for (var i = 0; i < fileList.length; i++) {
+            sets[file.parent.name].push(fileList[i]);
+        }
+
+        for (setName in sets) {
+            sets[setName] = Utils.sortFileList(sets[setName]);
+            sorted = Array.prototype.concat(sorted, sets[setName]);
+        }
+    }
+    catch(e) { alert(e) }
+
+    return sorted;
+};
+
+/**
  * Logging for this script.
  * @param <string> The logging text
  * @return void
@@ -106,6 +289,27 @@ Utils.logger = function(txt) {
     if (CONFIG.LOGGING == 0) return;
     Utils.folder( CONFIG.LOG_FOLDER );
     Utils.write_file(CONFIG.LOG_FILE_PATH, "[" + new Date().toUTCString() + "] " + txt);
+};
+
+/**
+ * Get a unique file name that avoids name colllisions with existing files.
+ * @param targetFolder
+ * @param fileName
+ * @returns {string|*}
+ */
+Utils.getUniqueFileName = function(targetFolder, fileName) {
+
+    var newFile, newFileName;
+
+    newFile = targetFolder + "/" + fileName;
+
+    if (new File(newFile).exists) {
+        newFileName = Utils.shortUUID() + "@" + fileName;
+        logger.info(newFileName);
+        newFile = targetFolderPath + "/" + newFileName;
+    }
+
+    return newFile;
 };
 
 /**
@@ -330,6 +534,8 @@ Utils.doDateFormat = function(date) {
     return [year, month, day].join('-');
 };
 
+Utils.dateFormat = Utils.doDateFormat;
+
 /**
  * Stringify an object.
  * @param obj
@@ -454,6 +660,13 @@ Utils.showProgressBar = function(maxvalue) {
 };
 
 /**
+ * Hides and destroys the progress bar.
+ */
+Utils.hideProgressBar = function() {
+    Utils.progress.hide();
+    Utils.progress = null;
+}
+/**
  * Updates the progress bar.
  * @param progress
  * @returns {*}
@@ -462,20 +675,31 @@ Utils.updateProgress = function(message) {
     Utils.progress.pnl.progBar.value++;
     var val = Utils.progress.pnl.progBar.value;
     var max = Utils.progress.pnl.progBar.maxvalue;
-    Utils.progress.pnl.progBarLabel.text = val + ' of ' + max + ' - ' + message;
+    Utils.progress.pnl.progBarLabel.text = val + ' of ' + max + ' ' + message;
     $.sleep(10);
     Utils.progress.update();
 };
 
 /**
  * Updates the progress bar.
- * @param progress
- * @returns {*}
+ * @param message
+ * @returns void(0)
  */
-Utils.updateProgressMessage = function(message) {
-    var val = Utils.progress.pnl.progBar.value;
-    var max = Utils.progress.pnl.progBar.maxvalue;
-    Utils.progress.pnl.progBarLabel.text = val + ' of ' + max + ' - ' + message;
+Utils.updateProgressMessage = function(message, val, max) {
+    var val = val || Utils.progress.pnl.progBar.value;
+    var max = max || Utils.progress.pnl.progBar.maxvalue;
+    Utils.progress.pnl.progBarLabel.text = val + ' of ' + max + ' ' + message;
+    $.sleep(10);
+    Utils.progress.update();
+};
+
+/**
+ * Updates the progress bar.
+ * @param message
+ * @returns void(0)
+ */
+Utils.progressBarText = function(message) {
+    Utils.progress.pnl.progBarLabel.text = message;
     $.sleep(10);
     Utils.progress.update();
 };
@@ -517,4 +741,21 @@ function updateProgress(progress, message) {
     $.sleep(10);
     progress.update();
     return progress;
+}
+
+/**
+ * Add leading zeros to a number.
+ * @param {integer} value
+ * @param {integer} width
+ * @returns {string}
+ */
+Utils.padNumber = function(value, width) {
+    return ( value + 100000 ).toString().slice( width * -1 );
+};
+
+/**
+ * Garbage Collect.
+ */
+Utils.gc = function() {
+    try {$.gc()}catch(e){}
 }

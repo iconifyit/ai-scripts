@@ -42,478 +42,876 @@
  *      Top & Bottom Margins = (Page Height - Row Height * Row Count) / 2
  */
 
-#target Illustrator
+// #target Illustrator
 
-#include "../utils.jsx";
+#include "Progress.js"
+#include "FileList.js"
+#include "../utils.jsx"
+#include "../JSON.jsx"
+#include "../polyfills.js"
 
-if (typeof(Utils) != 'object') {
-    alert('Missing required class Utils (/Adobe Illustrator/presets/en_us/scripts/utils.jsx)');
-}
+var ContactSheet = function() {
 
-#include "config.jsx";
-
-if (typeof(CONFIG) != 'object') {
-    alert('Missing required class CONFIG (/Adobe Illustrator/presets/en_us/scripts/Contact Sheet/config.jsx)');
-}
-
-#include "lang.jsx";
-
-if (typeof(LANG) != 'object') {
-    alert('Missing required class LANG (/Adobe Illustrator/presets/en_us/scripts/Contact Sheet/lang.jsx)');
-}
-
-var originalInteractionLevel = userInteractionLevel;
-userInteractionLevel = UserInteractionLevel.DONTDISPLAYALERTS;
-
-/**
- * Displays the settings dialog
- *
- * Inputs:
- *    - page width
- *    - page height
- *    - cell width
- *    - cell height
- *    - scale
- *    - logging enabled
- *
- *    - number of cols        = divide page width by cell width
- *    - number of rows        = divide page height by cell height
- *    - side margins          = (page width - (col count * col width))/2
- *    - top/bottom margins    = (page height - (row count * row width))/2
- *
- * @return boolean|Settings object
- */
-function doDisplayDialog() {
-
-    var response, dialog;
-
-    var dialogWidth  = 450;
-    var dialogHeight = 410;
-    var dialogLeft   = 550;
-    var dialogTop    = 300;
-
-    if ( bounds = Utils.getScreenSize() ) {
-        dialogLeft = Math.abs(Math.ceil((bounds.width/2) - (dialogWidth/2)));
-        // dialogTop  = Math.abs(Math.ceil((bounds.height) - (dialogHeight/2)));
+    if (typeof(Utils) != 'object') {
+        alert('Missing required class Utils (/Adobe Illustrator/presets/en_us/scripts/utils.jsx)');
     }
 
-    response = false;
+    // #include "CSConfig.jsx";
 
     /**
-     * Dialog bounds: [ Left, TOP, RIGHT, BOTTOM ]
-     * default: //550, 350, 1000, 800
+     * Global options object used to avoid having to pass a large number of variables in function calls.
+     * @type {{
+     *     ROWS          : int,
+     *     COLS          : int,
+     *     VOFF          : number,
+     *     HOFF          : number,
+     *     ROW_WIDTH     : number,
+     *     COL_WIDTH     : number,
+     *     FRM_WIDTH     : number,
+     *     FRM_HEIGHT    : number,
+     *     PG_WIDTH      : number,
+     *     PG_HEIGHT     : number,
+     *     PG_UNITS      : string,
+     *     GUTTER        : number,
+     *     SCALE         : number,
+     *     AIFORMAT      : [*],
+     *     SHRINK_TO_FIT : boolean,
+     *     START_FOLDER  : string,
+     *     FILENAME      : string,
+     *     LOGGING       : boolean,
+     *     LOG_FILE_PATH : string,
+     *     DEBUG         : boolean,
+     *     SKIP_COLS     : number,
+     *     STRIP         : [*]
+     * }}
      */
+    var CSConfig = {
 
-    dialog   = new Window(
-        "dialog", LANG.LABEL_DIALOG_WINDOW, [
-            dialogLeft,
-            dialogTop,
-            dialogLeft + dialogWidth,
-            dialogTop + dialogHeight
-        ]
-    );
+        /**
+         * Number of rows
+         */
 
-    try {
+        ROWS: 10,
 
-        var c1  = 28;
-        var c1w = c1 + 112;
+        /**
+         * Number of columns
+         */
 
-        var c2  = 142;
-        var c2w = c2 + 50;
+        COLS: 10,
 
-        var p1 = 16;
-        var p2 = dialogWidth - 16;
-        var p3 = (dialogWidth / 2 ) - 16
-        var p4 = p3 + 16
-        var p5 = p4 +  p3;
+        /**
+         * Top & bottom page margins
+         */
 
-        var r1 = 40;
+        VOFF: 0,
 
-        dialog.sizePanel         = dialog.add('panel',      [p1, 16, p3, 200],    LANG.LABEL_SIZE);
-        dialog.presetsPanel      = dialog.add('panel',      [p4, 16, p5, 200],    LANG.LABEL_PRESETS);
-        dialog.outputPanel       = dialog.add('panel',      [p1, 200, p2, 290],   LANG.LABEL_OUTPUT);
-        dialog.sourcePanel       = dialog.add('panel',      [p1, 290, p2, 350],   LANG.LABEL_INPUT);
+        /**
+         * Left & Right page margins
+         */
 
-        dialog.pageWidthLabel    = dialog.add("statictext", [c1, r1, c1w, 70],    LANG.LABEL_PG_WIDTH);
-        dialog.pageWidth         = dialog.add("edittext",   [c2, r1, c2w, 70],    CONFIG.PG_WIDTH);
-        dialog.pageWidth.active  = true;
+        HOFF: 0,
 
-        dialog.pageHeightLabel   = dialog.add("statictext", [c1, 70, c1w, 100],   LANG.LABEL_PG_HEIGHT);
-        dialog.pageHeight        = dialog.add("edittext",   [c2, 70, c2w, 100],   CONFIG.PG_HEIGHT);
-        dialog.pageHeight.active = true;
+        /**
+         * Row height. This is set programmatically.
+         */
 
-        dialog.colsLabel         = dialog.add("statictext", [c1, 100, c1w, 130],  LANG.LABEL_COL_COUNT);
-        dialog.cols              = dialog.add("edittext",   [c2, 100, c2w, 130],  CONFIG.COLS);
-        dialog.cols.active       = true;
+        ROW_WIDTH: 64,
 
-        dialog.rowsLabel         = dialog.add("statictext", [c1, 130, c1w, 160],  LANG.LABEL_ROW_COUNT);
-        dialog.rows              = dialog.add("edittext",   [c2, 130, c2w, 160],  CONFIG.ROWS);
-        dialog.rows.active       = true;
+        /**
+         * Column Height. This is set programmatically.
+         */
 
-        dialog.scaleLabel        = dialog.add('statictext', [c1, 160, c1w, 190],  LANG.LABEL_SCALE);
-        dialog.scale             = dialog.add('edittext',   [c2, 160, c2w, 190],  CONFIG.SCALE);
-        dialog.scale.active      = true;
+        COL_WIDTH: 64,
 
-        dialog.filenameLabel     = dialog.add('statictext', [c1, 220, c1w, 250],  LANG.LABEL_FILE_NAME);
-        dialog.filename          = dialog.add('edittext',   [c2, 220, 334, 250],  '');
-        dialog.filename.active   = true;
+        /**
+         * @deprecated
+         */
+        FRM_WIDTH: 64,
 
-        dialog.logging           = dialog.add('checkbox',   [c1, 260, c1w, 330],  LANG.LABEL_LOGGING);
-        dialog.logging.value     = CONFIG.LOGGING;
+        /**
+         * @deprecated
+         */
+        FRM_HEIGHT: 64,
 
-        dialog.folderBtn         = dialog.add('button',     [c1, 310, c1w, 340],  LANG.LABEL_CHOOSE_FOLDER, {name: 'folder'});
+        /**
+         * Artboard width
+         *
+         * 10 columns 128 px wide, with 64 px page margins
+         */
 
-        dialog.srcFolder         = dialog.add('edittext',   [140, 310, 424, 340], '');
-        dialog.srcFolder.active  = false;
+        PG_WIDTH: 1120,
 
-        dialog.presets           = dialog.add("listbox",    [p4 + 16, 48, p5 - 16, 184]);
+        /**
+         * Artboard height
+         *
+         * 20 rows 128 px tall, with 64 px page margins
+         */
 
-        dialog.cancelBtn         = dialog.add('button',     [232, 360, 332, 390], LANG.BUTTON_CANCEL, {name: 'cancel'});
-        dialog.openBtn           = dialog.add('button',     [334, 360, 434, 390], LANG.BUTTON_OK, {name: 'ok'});
-        dialog.saveBtn           = dialog.add('button',     [p1,  360, p1 + 120, 390], LANG.BUTTON_SAVE, {name: 'save'});
+        PG_HEIGHT: 1400,
 
-        dialog.saveBtn.enabled = false;
-        dialog.openBtn.enabled = false;
+        /**
+         * Page margin
+         */
+        MARGIN : 32,
 
-        initPresetsList(dialog);
-        initButtons();
+        /**
+         * Page Count
+         */
 
-        function updateConfig() {
+        PG_COUNT: 1,
 
-            CONFIG.PG_WIDTH        = parseInt(dialog.pageWidth.text);
-            CONFIG.PG_HEIGHT       = parseInt(dialog.pageHeight.text);
-            CONFIG.LOGGING         = dialog.logging.value;
-            CONFIG.SCALE           = parseInt(dialog.scale.text);
-            CONFIG.COLS            = parseInt(dialog.cols.text);
-            CONFIG.ROWS            = parseInt(dialog.rows.text);
-            CONFIG.COL_WIDTH       = parseInt((CONFIG.PG_WIDTH - (CONFIG.HOFF * 2)) / CONFIG.COLS);
-            CONFIG.ROW_HEIGHT      = parseInt((CONFIG.PG_HEIGHT - (CONFIG.VOFF * 2)) / CONFIG.ROWS);
-            CONFIG.FRM_WIDTH       = CONFIG.COL_WIDTH;
-            CONFIG.FRM_HEIGHT      = CONFIG.ROW_HEIGHT;
-            CONFIG.OUTPUT_FILENAME = dialog.filename.text;
+        /**
+         * Not yet fully-implemented. Will support multiple units
+         */
+
+        PG_UNITS: "px",
+
+        /**
+         * @deprecated
+         */
+
+        GUTTER: 2,
+
+        /**
+         * Enter scale in percentage 1-100
+         */
+
+        SCALE: 100,
+
+        /**
+         * Illustrator version compatibility
+         */
+
+        AIFORMAT: Compatibility.ILLUSTRATOR10,
+
+        /**
+         * If the icon is larger than the cell size, shrink it to the cell size
+         */
+
+        SHRINK_TO_FIT: true,
+
+        /**
+         * Starting folder for folder selector dialog
+         */
+
+        START_FOLDER: "~/github/iconify",
+
+        /**
+         * The contact sheet file name
+         */
+
+        FILENAME: "contact-sheet",
+
+        /**
+         * Enable logging?
+         */
+
+        LOGGING: true,
+
+        /**
+         * Verbose logging output?
+         */
+        DEBUG: true,
+
+        /**
+         * @deprecated
+         */
+
+        SKIP_COLS: 0,
+
+        /**
+         * Not fully-implemented
+         */
+
+        STRIP: ["svg", "ai", "eps", "txt", "pdf"],
+
+        /**
+         * Presets folder path
+         */
+        PRESETS_FOLDER: '~/ai-contact-sheet/presets',
+
+        /**
+         * Log folder path
+         */
+
+        LOG_FOLDER: '~/ai-contact-sheet/logs/',
+
+        /**
+         * Log file location
+         */
+
+        LOG_FILE_PATH: '~/ai-contact-sheet/logs/' + Utils.dateFormat(new Date()) + '.log',
+
+        /**
+         * Default path separator
+         */
+
+        PATH_SEPATATOR: "/"
+    };
+
+    if (typeof(CSConfig) != 'object') {
+        alert('Missing required class CSConfig (/Adobe Illustrator/presets/en_us/scripts/Contact Sheet/CSConfig.jsx)');
+    }
+
+    /**
+     * Logger method.
+     */
+    var logger = function(theText) {
+        Utils.folder( CSConfig.LOG_FOLDER );
+        Utils.write_file(CSConfig.LOG_FILE_PATH, "[" + new Date().toUTCString() + "] " + theText);
+    };
+
+    var originalInteractionLevel = userInteractionLevel;
+    userInteractionLevel = UserInteractionLevel.DONTDISPLAYALERTS;
+    app.coordinateSystem = CoordinateSystem.ARTBOARDCOORDINATESYSTEM;
+
+    CONFIG = CSConfig;
+
+    /**
+     * Displays the settings dialog
+     *
+     * Inputs:
+     *    - page width
+     *    - page height
+     *    - cell width
+     *    - cell height
+     *    - scale
+     *    - logging enabled
+     *
+     *    - number of cols        = divide page width by cell width
+     *    - number of rows        = divide page height by cell height
+     *    - side margins          = (page width - (col count * col width))/2
+     *    - top/bottom margins    = (page height - (row count * row width))/2
+     *
+     * @return boolean|Settings object
+     */
+    function doDisplayDialog() {
+
+        var response, dialog;
+
+        var dialogWidth  = 450;
+        var dialogHeight = 450;
+        var dialogLeft   = 550;
+        var dialogTop    = 300;
+
+        if ( bounds = Utils.getScreenSize() ) {
+            dialogLeft = Math.abs(Math.ceil((bounds.width/2) - (dialogWidth/2)));
         }
 
-        function initButtons() {
+        response = false;
 
-            dialog.saveBtn.enabled = false;
-            dialog.openBtn.enabled = false;
+        /**
+         * Dialog bounds: [ Left, TOP, RIGHT, BOTTOM ]
+         * default: //550, 350, 1000, 800
+         */
 
-            if (Utils.trim(dialog.pageWidth.text) == "") return;
-            if (Utils.trim(dialog.pageHeight.text) == "") return;
-            if (Utils.trim(dialog.cols.text) == "") return;
-            if (Utils.trim(dialog.rows.text) == "") return;
-            if (Utils.trim(dialog.scale.text) == "") return;
-            if (parseInt(dialog.pageWidth.text) < 10 ) return;
-            if (parseInt(dialog.pageHeight.text) < 10 ) return;
-            if (parseInt(dialog.cols.text) < 10 ) return;
-            if (parseInt(dialog.rows.text) < 10 ) return;
-            if (parseInt(dialog.scale.text) < 1 ) return;
-
-            dialog.saveBtn.enabled = true;
-
-            if (Utils.trim(dialog.filename.text) == "") return;
-            if (Utils.trim(dialog.srcFolder.text) == "") return;
-
-            var testFolder = new Folder(dialog.srcFolder.text);
-            if (! testFolder.exists) return;
-
-            dialog.openBtn.enabled = true;
-        }
-
-        dialog.pageWidth.onChange  = initButtons;
-        dialog.pageHeight.onChange = initButtons;
-        dialog.cols.onChange       = initButtons;
-        dialog.rows.onChange       = initButtons;
-        dialog.scale.onChange      = initButtons;
-        dialog.filename.onChange   = initButtons;
-        dialog.srcFolder.onChange  = initButtons;
-
-        dialog.cancelBtn.onClick = function() {
-            dialog.close();
-            response = false;
-            return false;
-        };
-
-        dialog.saveBtn.onClick = function() {
-
-            updateConfig();
-            savePresetsFile(CONFIG);
-            initPresetsList(dialog);
-            initButtons();
-        };
-
-        dialog.folderBtn.onClick = function() {
-            var srcFolder;
-            if ( srcFolder = Folder.selectDialog( CONFIG.CHOOSE_FOLDER ) ) {
-
-                if ( srcFolder.fs == 'Windows' ) {
-                    CONFIG.PATH_SEPATATOR = "\\"
-                }
-
-                dialog.srcFolder.text = srcFolder.path + CONFIG.PATH_SEPATATOR + srcFolder.name;
-                CONFIG.SRC_FOLDER = srcFolder;
-
-                if ( Utils.trim(dialog.filename.text) == '' ) {
-                    dialog.filename.text = srcFolder.name + '-contact-sheet.ai';
-                    CONFIG.OUTPUT_FILENAME = dialog.filename.text;
-                }
-                initButtons();
-            }
-        };
-
-        dialog.openBtn.onClick = function() {
-
-            updateConfig();
-
-            dialog.close();
-            response = true;
-            return true;
-        };
-
-        dialog.show();
-    }
-    catch(ex) {
-        Utils.logger('doDisplayDialog - ' + ex);
-    }
-    return response;
-}
-
-/**
- * Saves presets to JSON file.
- * @param {object} presets  Presets object
- */
-function savePresetsFile(presets) {
-    var filename = presets.PG_WIDTH + "x" + presets.PG_HEIGHT + "@" + presets.SCALE + ".json";
-    Utils.write_json_file(
-        CONFIG.PRESETS_FOLDER + "/" + filename, {
-            "PG_WIDTH"  : presets.PG_WIDTH,
-            "PG_HEIGHT" : presets.PG_HEIGHT,
-            "COLS"      : presets.COLS,
-            "ROWS"      : presets.ROWS,
-            "SCALE"     : presets.SCALE
-        }, true
-    );
-}
-
-/**
- * Initialize the presets select list
- * @param dialog
- */
-function initPresetsList(dialog) {
-
-    var presets, presetsFolder;
-
-    try {
-        presetsFolder = Utils.folder( CONFIG.PRESETS_FOLDER );
-
-        if (presets = presetsFolder.getFiles("*.json")) {
-
-            if (dialog.presets) {
-                dialog.presets.removeAll();
-            }
-
-            for (var i=0; i<presets.length; i++) {
-                item = dialog.presets.add("item", new File(presets[i]).name);
-            }
-
-            dialog.presets.onChange = function() {
-                if ( dialog.presets.selection ) {
-                    initSettingsForm(dialog, CONFIG.PRESETS_FOLDER + "/" + dialog.presets.selection.text);
-                }
-            }
-
-            dialog.presets.onDoubleClick = function() {
-                if ( filename = dialog.presets.selection.text ) {
-                    Utils.deleteFile(CONFIG.PRESETS_FOLDER + "/" + filename, true);
-                    initPresetsList(dialog);
-                }
-            }
-        }
-    }
-    catch(ex) {
-        Utils.logger('initPresetsList - ' + ex.message);
-    }
-}
-
-/**
- * Opens a session
- *
- */
-function initSettingsForm( dialog, filepath ) {
-
-    var presets;
-    if (presets = Utils.read_json_file(filepath)) {
-        dialog.pageWidth.text  = Utils.get(presets, 'PG_WIDTH',  '');
-        dialog.pageHeight.text = Utils.get(presets, 'PG_HEIGHT', '');
-        dialog.cols.text       = Utils.get(presets, 'COLS',      '');
-        dialog.rows.text       = Utils.get(presets, 'ROWS',      '');
-        dialog.scale.text      = Utils.get(presets, 'SCALE',     '');
-    }
-}
-
-/**
- * Main logic to create the contact sheet.
- * @return void
- */
-function doCreateContactSheet() {
-
-    var doc, srcFolder, svgFile, svgFileList, saveCompositeFile;
-
-    saveCompositeFile = false;
-
-    if (! doDisplayDialog()) {
-        return;
-    }
-
-    srcFolder = CONFIG.SRC_FOLDER;
-
-    if ( srcFolder == null ) return;
-
-    if (svgFileList = Utils.getFilesInSubfolders( srcFolder )) {
-
-        if (Utils.trim(CONFIG.OUTPUT_FILENAME) == "") {
-            CONFIG.OUTPUT_FILENAME = srcFolder.name.replace(" ", "-") + "-contact-sheet.ai";
-        }
-
-        CONFIG.PG_COUNT = Math.ceil(svgFileList.length / (CONFIG.ROWS * CONFIG.COLS));
-
-        app.coordinateSystem = CoordinateSystem.ARTBOARDCOORDINATESYSTEM;
-
-        doc = app.documents.add(
-            DocumentColorSpace.RGB,
-            CONFIG.PG_WIDTH,
-            CONFIG.PG_HEIGHT,
-            CONFIG.PG_COUNT,
-            DocumentArtboardLayout.GridByCol,
-            CONFIG.GUTTER,
-            Math.round(Math.sqrt(CONFIG.PG_COUNT))
+        dialog = new Window(
+            "dialog", "Contact Sheet Settings", [
+                dialogLeft,
+                dialogTop,
+                dialogLeft + dialogWidth,
+                dialogTop + dialogHeight
+            ]
         );
 
-        for (var i = 0; i < svgFileList.length; i++) {
+        try {
 
-            var board;
-            var bounds;
-            var boardWidth;
-            var rowCount, colCount;
-            var myY1, myY2;
-            var x1 = y1 = x2 = y2 = 0;
+            var c1  = 28;
+            var c1w = c1 + 112;
 
-            var myRowHeight   = CONFIG.ROW_HEIGHT + CONFIG.GUTTER;
-            var myColumnWidth = CONFIG.COL_WIDTH  + CONFIG.GUTTER;
+            var c2  = 142;
+            var c2w = c2 + 50;
 
-            for (var pageCounter = CONFIG.PG_COUNT -1; pageCounter >= 0; pageCounter--) {
+            var p1 = 16;
+            var p2 = dialogWidth - 16;
+            var p3 = (dialogWidth / 2 ) - 16
+            var p4 = p3 + 16
+            var p5 = p4 +  p3;
 
-                doc.artboards.setActiveArtboardIndex(pageCounter);
-                board  = doc.artboards[pageCounter];
-                bounds = board.artboardRect;
-                boardWidth = Math.round(bounds[2] - bounds[0]);
+            var r1 = 40;
 
-                /**
-                 * loop through rows
-                 * @type {number}
-                 */
+            dialog.sizePanel         = dialog.add('panel',      [p1, 16, p3, 230],    "Size");
+            dialog.presetsPanel      = dialog.add('panel',      [p4, 16, p5, 230],    "Presets");
+            dialog.outputPanel       = dialog.add('panel',      [p1, 230, p2, 320],   "Output");
+            dialog.sourcePanel       = dialog.add('panel',      [p1, 320, p2, 380],   "Input");
 
-                rowCount = Math.ceil((svgFileList.length / CONFIG.COLS));
-                rowCount = CONFIG.ROWS > rowCount ? rowCount : CONFIG.ROWS ;
+            dialog.pageWidthLabel    = dialog.add("statictext", [c1, r1, c1w, 70],    "Page Width");
+            dialog.pageWidth         = dialog.add("edittext",   [c2, r1, c2w, 70],    CSConfig.PG_WIDTH);
+            dialog.pageWidth.active  = true;
 
-                for (var rowCounter = 1 ; rowCounter <= rowCount; rowCounter++) {
+            dialog.pageHeightLabel   = dialog.add("statictext", [c1, 70, c1w, 100],   "Page Height");
+            dialog.pageHeight        = dialog.add("edittext",   [c2, 70, c2w, 100],   CSConfig.PG_HEIGHT);
+            dialog.pageHeight.active = true;
 
-                    myY1 = bounds[1] + CONFIG.VOFF + (myRowHeight * (rowCounter-1));
-                    myY2 = myY1 + CONFIG.FRM_HEIGHT;
+            dialog.colsLabel         = dialog.add("statictext", [c1, 100, c1w, 130],  "Columns");
+            dialog.cols              = dialog.add("edittext",   [c2, 100, c2w, 130],  CSConfig.COLS);
+            dialog.cols.active       = true;
 
-                    /**
-                     * loop through columns
-                     * @type {Number}
-                     */
+            dialog.rowsLabel         = dialog.add("statictext", [c1, 130, c1w, 160],  "Rows");
+            dialog.rows              = dialog.add("edittext",   [c2, 130, c2w, 160],  CSConfig.ROWS);
+            dialog.rows.active       = true;
 
-                    colCount = CONFIG.COLS;
+            dialog.scaleLabel        = dialog.add('statictext', [c1, 160, c1w, 190],  "Scale");
+            dialog.scale             = dialog.add('edittext',   [c2, 160, c2w, 190],  CSConfig.SCALE);
+            dialog.scale.active      = true;
 
-                    if (rowCounter > 1) {
+            dialog.marginLabel       = dialog.add('statictext', [c1, 190, c1w, 220],  "Page Margin");
+            dialog.margin            = dialog.add('edittext',   [c2, 190, c2w, 220],  CSConfig.MARGIN);
+            dialog.margin.active     = true;
 
-                        var remaining = Math.ceil(svgFileList.length - i);
-                        if (remaining < colCount) {
-                            colCount = remaining;
-                        }
+            dialog.filenameLabel     = dialog.add('statictext', [c1, 250, c1w, 280],  "Output file name");
+            dialog.filename          = dialog.add('edittext',   [c2, 250, 334, 280],  '');
+            dialog.filename.active   = true;
+
+            dialog.logging           = dialog.add('checkbox',   [c1, 290, c1w, 360],  "Logging");
+            dialog.logging.value     = CSConfig.LOGGING;
+
+            dialog.folderBtn         = dialog.add('button',     [c1, 340, c1w, 370],  "Choose Folder", {name: 'folder'});
+
+            dialog.srcFolder         = dialog.add('edittext',   [140, 340, 424, 370], '');
+            dialog.srcFolder.active  = false;
+
+            dialog.presets           = dialog.add("listbox",    [p4 + 16, 48, p5 - 16, 214]);
+
+            dialog.cancelBtn         = dialog.add('button',     [232, 390, 332, 420], "Cancel", {name: 'cancel'});
+            dialog.openBtn           = dialog.add('button',     [334, 390, 434, 420], "OK", {name: 'ok'});
+            dialog.saveBtn           = dialog.add('button',     [p1,  390, p1 + 120, 420], "Save", {name: 'save'});
+
+            initPresetsList(dialog);
+            initButtons();
+
+            /*
+             * Update the Output file name based on form values.
+             */
+
+            function setOutputFilename() {
+                dialog.filename.text = "contact-"
+                    + CSConfig.PG_WIDTH
+                    + "x" + CSConfig.COLS
+                    + "x" + CSConfig.ROWS
+                    + "@" + CSConfig.SCALE + ".ai";
+                CSConfig.OUTPUT_FILENAME = dialog.filename.text;
+            }
+            dialog.setOutputFilename = setOutputFilename;
+
+            dialog.setOutputFilename();
+
+            /*
+             * Update the CSConfig values.
+             */
+
+            function updateConfig() {
+
+                CSConfig.PG_WIDTH        = parseInt(dialog.pageWidth.text);
+                CSConfig.PG_HEIGHT       = parseInt(dialog.pageHeight.text);
+                CSConfig.LOGGING         = dialog.logging.value;
+                CSConfig.SCALE           = parseInt(dialog.scale.text);
+                CSConfig.COLS            = parseInt(dialog.cols.text);
+                CSConfig.ROWS            = parseInt(dialog.rows.text);
+                CSConfig.MARGIN          = parseInt(dialog.margin.text);
+                CSConfig.COL_WIDTH       = parseInt((CSConfig.PG_WIDTH  - (CSConfig.MARGIN * 2)) / CSConfig.COLS);
+                CSConfig.ROW_HEIGHT      = parseInt((CSConfig.PG_HEIGHT - (CSConfig.MARGIN * 2)) / CSConfig.ROWS);
+                CSConfig.FRM_WIDTH       = CSConfig.COL_WIDTH;
+                CSConfig.FRM_HEIGHT      = CSConfig.ROW_HEIGHT;
+                CSConfig.OUTPUT_FILENAME = dialog.filename.text;
+            }
+            dialog.updateConfig = function() {
+                updateConfig();
+            }
+
+            /*
+             * Initialize the dialog button actions.
+             */
+
+            function initButtons() {
+
+                dialog.saveBtn.enabled = false;
+                dialog.openBtn.enabled = false;
+
+                if (Utils.trim(dialog.pageWidth.text) == "") return;
+                if (Utils.trim(dialog.pageHeight.text) == "") return;
+                if (Utils.trim(dialog.cols.text) == "") return;
+                if (Utils.trim(dialog.rows.text) == "") return;
+                if (Utils.trim(dialog.scale.text) == "") return;
+                if (parseInt(dialog.pageWidth.text) < 10 ) return;
+                if (parseInt(dialog.pageHeight.text) < 10 ) return;
+                if (parseInt(dialog.cols.text) < 1 ) return;
+                if (parseInt(dialog.rows.text) < 1 ) return;
+                if (parseInt(dialog.scale.text) < 1 ) return;
+
+                dialog.saveBtn.enabled = true;
+
+                if (Utils.trim(dialog.filename.text) == "") return;
+                if (Utils.trim(dialog.srcFolder.text) == "") return;
+
+                var testFolder = new Folder(dialog.srcFolder.text);
+                // if (! testFolder.exists) return;
+
+                dialog.openBtn.enabled = true;
+            }
+            dialog.initButtons = function() {
+                initButtons();
+            }
+
+            /*
+             * Add form event handlers.
+             */
+
+            dialog.pageWidth.onChange = function() {
+                CSConfig.PG_WIDTH = dialog.pageWidth.text;
+                initButtons();
+                dialog.setOutputFilename();
+            }
+
+            dialog.cols.onChange = function() {
+                CSConfig.COLS = dialog.cols.text;
+                initButtons();
+                dialog.setOutputFilename();
+            }
+
+            dialog.rows.onChange = function() {
+                CSConfig.ROWS = dialog.rows.text;
+                initButtons();
+                dialog.setOutputFilename();
+            }
+
+            dialog.scale.onChange = function() {
+                CSConfig.SCALE = dialog.scale.text;
+                initButtons();
+                dialog.setOutputFilename();
+            }
+
+            dialog.pageHeight.onChange = initButtons;
+            dialog.filename.onChange   = initButtons;
+            dialog.srcFolder.onChange  = initButtons;
+
+            dialog.cancelBtn.onClick = function() {
+                dialog.close();
+                response = false;
+                return false;
+            };
+
+            dialog.saveBtn.onClick = function() {
+
+                updateConfig();
+                savePresetsFile(CSConfig);
+                initPresetsList(dialog);
+                initButtons();
+            };
+
+            dialog.folderBtn.onClick = function() {
+                var srcFolder;
+                if ( srcFolder = Folder.selectDialog( CSConfig.CHOOSE_FOLDER ) ) {
+
+                    if ( srcFolder.fs == 'Windows' ) {
+                        CSConfig.PATH_SEPATATOR = "\\"
                     }
 
-                    for (var columnCounter = 1 ; columnCounter <= colCount; columnCounter++) {
-                        try {
+                    dialog.srcFolder.text = srcFolder.path + CSConfig.PATH_SEPATATOR + srcFolder.name;
+                    CSConfig.SRC_FOLDER = srcFolder;
 
-                            var f = new File(svgFileList[i]);
+                    if ( Utils.trim(dialog.filename.text) == '' ) {
+                        setOutputFilename();
+                        CSConfig.OUTPUT_FILENAME = dialog.filename.text;
+                    }
+                    initButtons();
+                }
+            };
 
-                            if (f.exists) {
+            dialog.openBtn.onClick = function() {
 
-                                try {
-                                    if (i == 0) {
-                                        doc.layers[0].name = f.name;
-                                    }
-                                    else {
-                                        doc.layers.add().name = f.name;
-                                    }
-                                }
-                                catch(ex) {
-                                    Utils.logger(LANG.LAYER_NOT_CREATED + ex);
-                                }
+                updateConfig();
 
-                                svgFile = doc.groupItems.createFromFile(f);
+                dialog.close();
+                response = true;
+                return true;
+            };
 
-                                var liveWidth = (CONFIG.COLS * (CONFIG.FRM_WIDTH + CONFIG.GUTTER)) - CONFIG.GUTTER;
-                                var hoff = Math.ceil((CONFIG.PG_WIDTH - liveWidth) / 2);
+            /*
+             * Update the form.
+             */
 
-                                var myX1 = bounds[0] + hoff + (myColumnWidth * (columnCounter-1));
+            updatePresetsSelection(dialog, CSConfig);
+            setOutputFilename();
+            updateConfig();
 
-                                var shiftX = Math.ceil((CONFIG.FRM_WIDTH - svgFile.width) / 2);
-                                var shiftY = Math.ceil((CONFIG.FRM_WIDTH - svgFile.height) / 2);
+            dialog.show();
+        }
+        catch(ex) {
+            logger('doDisplayDialog - ' + ex);
+        }
+        return response;
+    }
 
-                                x1 = myX1 + shiftX;
-                                y1 = (myY1 + shiftY) * -1;
+    /**
+     * Saves presets to JSON file.
+     * @param {object} presets  Presets object
+     */
+    function savePresetsFile(presets) {
+        var filename = presets.PG_WIDTH + "x" + presets.PG_HEIGHT + "@" + presets.SCALE + ".json";
+        Utils.write_file(
+            CSConfig.PRESETS_FOLDER + "/" + filename,
+            JSON.stringify({
+                "PG_WIDTH"  : presets.PG_WIDTH,
+                "PG_HEIGHT" : presets.PG_HEIGHT,
+                "COLS"      : presets.COLS,
+                "ROWS"      : presets.ROWS,
+                "SCALE"     : presets.SCALE,
+                "MARGIN"    : presets.MARGIN
+            }), true
+        );
+    }
 
-                                try {
-                                    svgFile.position = [ x1, y1 ];
+    /**
+     * Initialize the presets select list
+     * @param dialog
+     */
+    function initPresetsList(dialog) {
 
-                                    if (typeof(svgFile.resize) == "function") {
-                                        svgFile.resize(
-                                            CONFIG.SCALE,
-                                            CONFIG.SCALE,
-                                            true,
-                                            true,
-                                            true,
-                                            true,
-                                            CONFIG.SCALE
-                                        );
-                                    }
+        var presets, presetsFolder;
 
-                                    /**
-                                     * Only save the composite file if at least one
-                                     * icon exists and is successfully imported.
-                                     * @type {boolean}
-                                     */
-                                    saveCompositeFile = true;
-                                }
-                                catch(ex) {
-                                    Utils.logger(ex);
-                                    try { svgFile.position = [0, 0]; }
-                                    catch(ex) {/*Exit Gracefully*/}
-                                }
-                            }
-                            else {
-                                Utils.logger(svgFileList[i] + LANG.DOES_NOT_EXIST);
-                            }
-                        }
-                        catch(ex) {
-                            Utils.logger(ex);
-                        }
-                        i++;
+        try {
+            presetsFolder = Utils.folder( CSConfig.PRESETS_FOLDER );
+
+            if (presets = presetsFolder.getFiles("*.json")) {
+
+                if (dialog.presets) {
+                    dialog.presets.removeAll();
+                }
+
+                for (var i=0; i<presets.length; i++) {
+                    item = dialog.presets.add("item", new File(presets[i]).name);
+
+                    if (i == presets.length-1) {
+                        dialog.presets.defaultValue = new File(presets[i]).name;
+                        item.selected = true;
+                    }
+                }
+
+                dialog.presets.onChange = function() {
+                    updatePresetsSelection(dialog, CSConfig);
+                }
+
+                dialog.presets.onDoubleClick = function() {
+                    if ( filename = dialog.presets.selection.text ) {
+                        Utils.deleteFile(CSConfig.PRESETS_FOLDER + "/" + filename, true);
+                        initPresetsList(dialog);
                     }
                 }
             }
-            if (saveCompositeFile) {
-                Utils.saveFileAsAi(doc, srcFolder.path + "/" + CONFIG.OUTPUT_FILENAME, CONFIG.AIFORMAT);
-            }
+        }
+        catch(ex) {
+            logger('initPresetsList - ' + ex.message);
         }
     }
+
+    /**
+     * Update the dialog based on presets selection
+     * @param dialog
+     * @param CSConfig
+     */
+    function updatePresetsSelection(dialog, CSConfig) {
+        if ( dialog.presets.selection ) {
+            initSettingsForm(dialog, CSConfig.PRESETS_FOLDER + "/" + dialog.presets.selection.text);
+        }
+    }
+
+    /**
+     * Opens a session
+     *
+     */
+    function initSettingsForm( dialog, filepath ) {
+
+        var presets;
+        if (presets = Utils.read_json_file(filepath)) {
+            dialog.pageWidth.text  = Utils.get(presets, 'PG_WIDTH',  '');
+            dialog.pageHeight.text = Utils.get(presets, 'PG_HEIGHT', '');
+            dialog.cols.text       = Utils.get(presets, 'COLS',      '');
+            dialog.rows.text       = Utils.get(presets, 'ROWS',      '');
+            dialog.scale.text      = Utils.get(presets, 'SCALE',     '');
+            dialog.margin.text     = Utils.get(presets, 'MARGIN',    0);
+            dialog.updateConfig();
+        }
+
+        dialog.setOutputFilename();
+    }
+
+    /**
+     * Adds a new artboard and rearranges the artboards.
+     * @param   {Document}  doc
+     * @param   {object}    Settings
+     * @returns {*}
+     */
+    function addArtboard(doc, Settings) {
+
+        var w, h, x1, y1, x2, y2, rect, rect2;
+
+        try {
+            rect = doc.artboards[doc.artboards.length-1].artboardRect;
+
+            w = rect[2] - rect[0];
+            h = Math.abs(rect[3]) - Math.abs(rect[1]);
+
+            x1 = rect[0];
+            y1 = rect[1] + h;
+            x2 = rect[2];
+            y2 = rect[3] + h;
+
+            rect2 = [x1, y1, x2, y2];
+
+            board = doc.artboards.add(rect2);
+
+            doc.rearrangeArtboards(
+                Settings.layout,
+                Settings.rowsOrCols,
+                Settings.spacing,
+                true
+            );
+        }
+        catch(e) { alert(e) }
+
+        return board;
+    }
+
+    /**
+     * Returns existing or new layer.
+     * @param layerName
+     * @param parent
+     * @returns {*}
+     */
+    function getOrAddLayer(layerName, parent) {
+        var newLayer;
+        try {
+            newLayer = parent.layers.getByName(layerName);
+        }
+        catch(e) {
+            newLayer = parent.layers.add();
+        }
+        return newLayer;
+    }
+
+    /**
+     * Main logic to create the contact sheet.
+     * @return void
+     */
+    function doCreateContactSheet() {
+
+        var doc, srcFolder, svgFile, srcFileList, saveCompositeFile;
+
+        saveCompositeFile = false;
+
+        doc = activeDocument;
+
+        if (! doDisplayDialog()) {
+            return;
+        }
+
+        if (CSConfig.SRC_FOLDER === null) return;
+
+        srcFolder = CSConfig.SRC_FOLDER;
+
+        srcFileList = new FileList(srcFolder, [FileTypes.SVG]);
+
+        if (srcFileList.length) {
+
+            srcFileList = Utils.sortBySetAndName(srcFileList);
+
+            if (Utils.trim(CSConfig.OUTPUT_FILENAME) == "") {
+                CSConfig.OUTPUT_FILENAME = srcFolder.name.replace(" ", "-") + "-contact-sheet.ai";
+            }
+
+            CSConfig.PG_COUNT = Math.ceil(srcFileList.length / (CSConfig.ROWS * CSConfig.COLS));
+
+            Settings = {
+                colorSpace : DocumentColorSpace.RGB,
+                layout     : DocumentArtboardLayout.GridByCol,
+                spacing    : 32,
+                columns    : Math.round(Math.sqrt(CSConfig.PG_COUNT)),
+                rowsOrCols : 2
+            };
+
+            try {
+                doc = app.documents.add(
+                    Settings.colorSpace,
+                    CSConfig.PG_WIDTH,
+                    CSConfig.PG_HEIGHT,
+                    CSConfig.PG_COUNT,
+                    Settings.layout,
+                    Settings.spacing,
+                    Settings.columns
+                );
+            }
+            catch( ex ) {
+                logger("Document was not created. " + ex);
+                return;
+            }
+
+            var progress = new Progress({
+                label    : 'Create Contact Sheet',
+                maxvalue : srcFileList.length
+            }, true);
+
+            var vLayer,
+                sLayer,
+                boardName,
+                setName,
+                volName;
+
+            var board,
+                boards,
+                bounds,
+                boardWidth,
+                rowCount,
+                colCount,
+                myY1, myY2,
+                x1, y1, x2, y2,
+                myRowHeight,
+                myColumnWidth;
+
+            for (var i = 0; i < srcFileList.length; i++) {
+
+                x1 = y1 = x2 = y2 = 0;
+
+                myRowHeight   = CSConfig.ROW_HEIGHT + CSConfig.GUTTER;
+                myColumnWidth = CSConfig.COL_WIDTH  + CSConfig.GUTTER;
+
+                for (var pageCounter = 0; pageCounter < CSConfig.PG_COUNT; pageCounter++) {
+
+                    setName   = new File(srcFileList[i]).parent.name;
+                    volName   = new File(srcFileList[i]).parent.parent.name;
+                    boardName = volName + '-' + setName + '-' + String(doc.artboards.length-1);
+
+                    boards = doc.artboards;
+                    boards.setActiveArtboardIndex(pageCounter);
+                    app.executeMenuCommand('fitall');
+
+                    board       = boards[pageCounter];
+                    board.name  = boardName;
+                    bounds      = board.artboardRect;
+                    boardWidth  = Math.round(bounds[2] - bounds[0]);
+
+                    if (Utils.get(vLayer, 'name', null ) != volName) {
+                        vLayer = doc.layers.add();
+                        vLayer.name = volName;
+                    }
+
+                    /**
+                     * loop through rows
+                     * @type {number}
+                     */
+
+                    rowCount = Math.ceil((srcFileList.length / CSConfig.COLS));
+                    rowCount = CSConfig.ROWS > rowCount ? rowCount : CSConfig.ROWS ;
+
+                    for (var rowCounter = 1 ; rowCounter <= rowCount; rowCounter++) {
+
+                        myY1 = bounds[1] + CSConfig.MARGIN + (myRowHeight * (rowCounter-1));
+                        myY2 = myY1 + CSConfig.FRM_HEIGHT;
+
+                        /**
+                         * loop through columns
+                         * @type {Number}
+                         */
+
+                        colCount = CSConfig.COLS;
+
+                        if (rowCounter > 1) {
+
+                            var remaining = Math.ceil(srcFileList.length - i);
+                            if (remaining < colCount) {
+                                colCount = remaining;
+                            }
+                        }
+
+                        for (var columnCounter = 1 ; columnCounter <= colCount; columnCounter++) {
+                            try {
+
+                                var f = new File(srcFileList[i]);
+
+                                if (f.exists) {
+
+                                    // Add layers
+
+                                    sLayer = getOrAddLayer(f.parent.name, vLayer);
+                                    sLayer.name = f.parent.name;
+
+                                    try {
+                                        sLayer.layers.add().name = f.name.replace(new RegExp(/\s/g), '-');
+                                    }
+                                    catch(ex) {
+                                        logger("Layer " + f.name + " was not created. Error : " + ex);
+                                    }
+
+                                    svgFile = sLayer.groupItems.createFromFile(f);
+
+                                    progress.update('icons imported');
+
+                                    var myX1   = bounds[0] + (myColumnWidth * (columnCounter-1));
+
+                                    var shiftX = Math.ceil((CSConfig.FRM_WIDTH - svgFile.width) / 2);
+                                    var shiftY = Math.ceil((CSConfig.FRM_WIDTH - svgFile.height) / 2);
+
+                                    x1 = myX1 + shiftX;
+                                    y1 = (myY1 + shiftY) * -1;
+
+                                    try {
+                                        svgFile.position = [ x1, y1 ];
+                                        saveCompositeFile = true;
+                                    }
+                                    catch(ex) {
+                                        logger(ex);
+                                        try { svgFile.position = [0, 0]; }
+                                        catch(ex) {/*Exit Gracefully*/}
+                                    }
+
+                                    try {
+                                        if (typeof(svgFile.resize) == "function") {
+                                            svgFile.resize(
+                                                CSConfig.SCALE,
+                                                CSConfig.SCALE,
+                                                true,
+                                                true,
+                                                true,
+                                                true,
+                                                CSConfig.SCALE
+                                            );
+                                        }
+                                    }
+                                    catch(e) {
+                                        logger(ex);
+                                    }
+
+                                    redraw();
+                                }
+                                else {
+                                    logger(srcFileList[i] + " does not exist");
+                                }
+                            }
+                            catch(ex) {
+                                logger(ex);
+                            }
+                            i++;
+                        }
+                    }
+                }
+            }
+
+            progress.text('Saving contact sheet');
+
+            if (saveCompositeFile) {
+                Utils.saveFileAsAi(doc, srcFolder.path + "/" + CSConfig.OUTPUT_FILENAME, CSConfig.AIFORMAT);
+            }
+
+            progress.close();
+        }
+    }
+
+    doCreateContactSheet();
+
+    userInteractionLevel = originalInteractionLevel;
+
+    Utils.gc();
 }
 
-doCreateContactSheet();
 
-userInteractionLevel = originalInteractionLevel;
+new ContactSheet();

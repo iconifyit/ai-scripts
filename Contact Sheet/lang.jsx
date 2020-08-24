@@ -26,7 +26,6 @@ var LANG = {
     /**
      * Dialog window label
      */
-
     LABEL_DIALOG_WINDOW: "Contact Sheet Settings",
 
     /**
@@ -42,67 +41,56 @@ var LANG = {
     /**
      * No selection error string.
      */
-
     NO_SELECTION: "No selection",
 
     /**
      * Page width field label.
      */
-
     LABEL_PG_WIDTH: "Page Width:",
 
     /**
      * Page height field label.
      */
-
     LABEL_PG_HEIGHT: "Page Height:",
 
     /**
      * Column count field label.
      */
-
     LABEL_COL_COUNT: "Column Count:",
 
     /**
      * Row count field label.
      */
-
     LABEL_ROW_COUNT: "Row Count:",
 
     /**
      * Scale field label.
      */
-
     LABEL_SCALE: "Scale:",
 
     /**
      * File name field label.
      */
-
     LABEL_FILE_NAME: "File Name:",
 
     /**
      * Logging field label.
      */
-
     LABEL_LOGGING: "Logging?",
 
     /**
      * Cancel button text.
      */
-
     BUTTON_CANCEL: "Cancel",
 
     /**
      * OK button text.
      */
-
     BUTTON_OK: "Ok",
 
     /**
      * Save button text
      */
-
     BUTTON_SAVE: "Save Preset",
 
     /**
@@ -113,43 +101,41 @@ var LANG = {
     /**
      * Object does not exist error string.
      */
-
     DOES_NOT_EXIST: " does not exist",
+
+    /**
+     * Could not create document error string.
+     */
+    DOC_NOT_CREATED: "The document could not be created. ",
 
     /**
      * Could not create layer error string.
      */
-
     LAYER_NOT_CREATED: "Could not create layer. ",
 
     /**
      * Source folder field label.
      */
-
     LABEL_SRC_FOLDER: "Source Folder",
 
     /**
      * Choose folder label.
      */
-
     LABEL_CHOOSE_FOLDER: "Choose Folder",
 
     /**
      * Input field label.
      */
-
     LABEL_INPUT: "Input",
 
     /**
      * Size field label.
      */
-
     LABEL_SIZE: "Size",
 
     /**
      * Output field label.
      */
-
     LABEL_OUTPUT: "Output",
 
     /**
